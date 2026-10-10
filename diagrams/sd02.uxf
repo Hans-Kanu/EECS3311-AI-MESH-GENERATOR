@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1240</w><h>918</h></coordinates><panel_attributes>title=SD02: Generate Reference Image from Description (UC02, UC05)
+obj=_:User_~u ACTOR
+obj=_:MainWindow_~mw
+obj=_:AppController_~ac
+obj=_:ModelAgent_~ag
+obj=_:DescriptionOnlyPath_~p
+obj=_:GeminiVisionAdapter_~gv
+obj=_:GeminiImageAdapter_~gi
+obj=_:ReferenceImageSet_~rset
+u-&gt;&gt;&gt;mw : click Generate (description only); on=u; on=mw
+mw-&gt;&gt;&gt;ac : submitRequest(request); on=ac
+ac-&gt;&gt;&gt;ag : startGeneration(request, set); on=ag
+ag-&gt;ag + :choosePath(request)
+tick=
+ag-&gt;&gt;&gt;p : run(agent, request, set); on=p
+p-&gt;&gt;&gt;ag : generateFromDescription(description)
+ag-&gt;&gt;&gt;gv : writeImagePrompt(description); on=gv
+gv.&gt;ag : prompt; off=gv
+ag-&gt;&gt;&gt;gi : generateFromPrompt(prompt)
+combinedFragment=alt~a1 mw rset; gi:[blocked by safety rules]
+gi.&gt;ag : error
+ag-&gt;&gt;&gt;mw : onError(GENERATING_IMAGE, reword description)
+..=a1; gi:[else]
+gi.&gt;ag : image
+ag-&gt;&gt;&gt;mw : onProgress(GENERATING_IMAGE, show image)
+u-&gt;&gt;&gt;mw : click Accept
+mw-&gt;&gt;&gt;ac : acceptGeneratedImage()
+ac-&gt;&gt;&gt;rset : add(image)
+p-&gt;p + :fillAndReview(agent, set)
+tick=
+ref=p rset :missing-angle loop (see SD01)
+--=a1
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

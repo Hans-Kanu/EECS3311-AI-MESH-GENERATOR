@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1090</w><h>804</h></coordinates><panel_attributes>title=SD06: Review Sources, Restore a Version and Preview (UC07, UC09, UC11)
+obj=_:User_~u ACTOR
+obj=_:MainWindow_~mw
+obj=_:ModelViewerPanel_~mv
+obj=_:AppController_~ac
+obj=_:Project_~prj
+obj=_:ReferenceImageSet_~rset
+obj=_:ProjectRepository_~repo
+u-&gt;&gt;&gt;mw : tick Exclude on an image; on=u; on=mw
+mw-&gt;&gt;&gt;ac : excludeImage(imageId); on=ac
+ac-&gt;&gt;&gt;rset : exclude(imageId)
+combinedFragment=alt~a1 mw repo; rset:[front view or last image]
+rset.&gt;ac : rejected
+ac-&gt;&gt;&gt;mw : showError(message)
+..=a1; rset:[else]
+ac-&gt;&gt;&gt;repo : save(project)
+--=a1
+u-&gt;&gt;&gt;mw : select version, click Restore
+mw-&gt;&gt;&gt;ac : restoreVersion(number)
+ac-&gt;&gt;&gt;prj : setCurrentVersion(number)
+ac-&gt;&gt;&gt;prj : getVersion(number); on=prj
+prj.&gt;ac : version; off=prj
+ac-&gt;&gt;&gt;repo : save(project)
+ac-&gt;&gt;&gt;mv : loadModel(modelFile); on=mv
+u-&gt;&gt;&gt;mv : drag, scroll, Reset View
+mv-&gt;mv + :resetView()
+tick=
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

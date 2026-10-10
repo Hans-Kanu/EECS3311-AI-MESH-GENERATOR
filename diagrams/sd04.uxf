@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>940</w><h>690</h></coordinates><panel_attributes>title=SD04: Export Model (UC10)
+obj=_:User_~u ACTOR
+obj=_:MainWindow_~mw
+obj=_:AppController_~ac
+obj=_:Project_~prj
+obj=_:ExporterFactory_~fac
+obj=_:ObjExporter_~ex CREATED_LATER
+u-&gt;&gt;&gt;mw : choose version, format, location; on=u; on=mw
+mw-&gt;&gt;&gt;ac : exportVersion(number, format, path); on=ac
+ac-&gt;&gt;&gt;prj : getVersion(number); on=prj
+prj.&gt;ac : version; off=prj
+ac-&gt;&gt;&gt;fac : create(format); on=fac
+fac-&gt;&gt;&gt;ex : &lt;&lt;create&gt;&gt;
+fac.&gt;ac : exporter; off=fac
+ac-&gt;&gt;&gt;ex : export(modelFile, path)
+combinedFragment=alt~a1 mw ex; ex:[conversion or write fails]
+ex.&gt;ac : error
+ac-&gt;&gt;&gt;mw : showError(message)
+..=a1; ex:[else]
+ex.&gt;ac : done
+ac-&gt;&gt;&gt;mw : onProgress(DONE, export complete)
+--=a1
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

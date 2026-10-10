@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>790</w><h>652</h></coordinates><panel_attributes>title=SD05: Manage Projects through the CLI (UC01)
+obj=_:User_~u ACTOR
+obj=_:CliApp_~cli
+obj=_:AppController_~ac
+obj=_:ProjectRepository_~repo
+obj=_:Project_~prj CREATED_LATER
+u-&gt;&gt;&gt;cli : projects new name; on=u; on=cli
+cli-&gt;cli + :parseCommand(line)
+tick=
+cli-&gt;&gt;&gt;ac : createProject(name); on=ac
+ac-&gt;&gt;&gt;repo : exists(name); on=repo
+repo.&gt;ac : taken; off=repo
+combinedFragment=alt~a1 cli prj; ac:[name empty or taken]
+ac.&gt;cli : error
+cli.&gt;u : print error
+..=a1; ac:[else]
+ac-&gt;&gt;&gt;prj : &lt;&lt;create&gt;&gt;
+ac-&gt;&gt;&gt;repo : save(project)
+ac.&gt;cli : done
+cli.&gt;u : print project created
+--=a1
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

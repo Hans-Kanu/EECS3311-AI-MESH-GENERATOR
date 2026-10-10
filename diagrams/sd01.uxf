@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1390</w><h>1678</h></coordinates><panel_attributes>title=SD01: Generate Reference Set from an Image (UC02, UC03, UC04, UC06)
+obj=_:User_~u ACTOR
+obj=_:MainWindow_~mw
+obj=_:AppController_~ac
+obj=_:ModelAgent_~ag
+obj=_:ImageOnlyPath_~p
+obj=_:GeminiVisionAdapter_~gv
+obj=_:ReverseImageSearchAdapter_~rs
+obj=_:GeminiImageAdapter_~gi
+obj=_:ReferenceImageSet_~rset
+u-&gt;&gt;&gt;mw : click Generate; on=u; on=mw
+mw-&gt;&gt;&gt;ac : submitRequest(request); on=ac
+combinedFragment=alt~a1 mw rset; ac:[invalid input]
+ac-&gt;&gt;&gt;mw : showError(message)
+..=a1; ac:[valid]
+ac-&gt;&gt;&gt;ag : startGeneration(request, set); on=ag
+ag-&gt;ag + :choosePath(request)
+tick=
+ag-&gt;&gt;&gt;p : run(agent, request, set); on=p
+p-&gt;&gt;&gt;ag : identifyObject(request)
+ag-&gt;&gt;&gt;gv : identify(images, description); on=gv
+gv.&gt;ag : id; off=gv
+combinedFragment=alt~a2 mw rset; ag:[id.isLowConfidence()]
+ag-&gt;&gt;&gt;mw : onError(IDENTIFYING, ask for description)
+..=a2; ag:[else]
+ag-&gt;&gt;&gt;mw : onProgress(IDENTIFYING, show result)
+u-&gt;&gt;&gt;mw : confirm identification
+mw-&gt;&gt;&gt;ac : confirmIdentification(id)
+p-&gt;&gt;&gt;ag : collectReferences(id, set)
+ag-&gt;&gt;&gt;rs : search(image, id); on=rs
+rs.&gt;ag : results; off=rs
+combinedFragment=loop~l1 ag rset; ag:[for each result]
+ag-&gt;&gt;&gt;gv : isSameItem(candidate, original); on=gv
+gv.&gt;ag : match; off=gv
+ag-&gt;&gt;&gt;gv : labelAngle(candidate); on=gv
+gv.&gt;ag : angle; off=gv
+ag-&gt;&gt;&gt;rset : add(image)
+--=l1
+--=a2
+p-&gt;p + :fillAndReview(agent, set)
+tick=
+p-&gt;&gt;&gt;ag : fillMissingAngles(set, context)
+ag-&gt;&gt;&gt;rset : missingAngles(); on=rset
+rset.&gt;ag : angles; off=rset
+combinedFragment=loop~l2 ag rset; ag:[for each missing angle]
+ag-&gt;&gt;&gt;gi : generateAngle(refs, angle); on=gi
+gi.&gt;ag : view; off=gi
+ag-&gt;&gt;&gt;gv : isConsistent(view, refs); on=gv
+gv.&gt;ag : ok; off=gv
+ag-&gt;&gt;&gt;rset : add(view)
+--=l2
+ag-&gt;&gt;&gt;mw : onProgress(DONE, review images)
+--=a1
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>

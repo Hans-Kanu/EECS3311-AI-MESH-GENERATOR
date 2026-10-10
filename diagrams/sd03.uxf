@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1540</w><h>1450</h></coordinates><panel_attributes>title=SD03: Build 3D Model (UC08)
+obj=_:User_~u ACTOR
+obj=_:MainWindow_~mw
+obj=_:ModelViewerPanel_~mv
+obj=_:AppController_~ac
+obj=_:Project_~prj
+obj=_:ReferenceImageSet_~rset
+obj=_:ModelAgent_~ag
+obj=_:Hunyuan3DAdapter_~hun
+obj=_:Hunyuan3DApi_~api
+obj=_:ProjectRepository_~repo
+u-&gt;&gt;&gt;mw : click Build 3D Model; on=u; on=mw
+mw-&gt;&gt;&gt;ac : buildModel(); on=ac
+ac-&gt;&gt;&gt;prj : getReferenceSet(); on=prj
+prj.&gt;ac : set; off=prj
+ac-&gt;&gt;&gt;rset : hasFrontView(); on=rset
+rset.&gt;ac : hasFront; off=rset
+combinedFragment=alt~a1 mw repo; ac:[no front view]
+ac-&gt;&gt;&gt;mw : showError(front view required)
+..=a1; ac:[else]
+ac-&gt;&gt;&gt;ag : buildMesh(set); on=ag
+ag-&gt;&gt;&gt;hun : submitJob(views); on=hun
+hun-&gt;hun + :prepareImage(image)
+tick=
+hun-&gt;&gt;&gt;api : createJob(images); on=api
+api.&gt;hun : jobId; off=api
+hun.&gt;ag : jobId; off=hun
+combinedFragment=loop~l1 ag api; ag:[status is QUEUED or RUNNING]
+ag-&gt;&gt;&gt;hun : getStatus(jobId); on=hun
+hun-&gt;&gt;&gt;api : queryJob(jobId); on=api
+api.&gt;hun : status; off=api
+hun.&gt;ag : status; off=hun
+ag-&gt;&gt;&gt;mw : onProgress(BUILDING_MESH, status)
+--=l1
+combinedFragment=alt~a2 mw repo; ag:[status == FAILED]
+ag-&gt;&gt;&gt;mw : onError(BUILDING_MESH, offer retry)
+..=a2; ag:[status == DONE]
+ag-&gt;&gt;&gt;hun : download(jobId); on=hun
+hun.&gt;ag : modelFile; off=hun
+ag.&gt;ac : modelFile; off=ag
+ac-&gt;&gt;&gt;prj : addVersion(modelFile); on=prj
+prj-&gt;&gt;&gt;rset : copy(); on=rset
+rset.&gt;prj : snapshot; off=rset
+ac-&gt;&gt;&gt;repo : save(project); off=prj
+ac-&gt;&gt;&gt;mv : loadModel(modelFile)
+--=a2
+--=a1
+</panel_attributes><additional_attributes></additional_attributes></element></diagram>
