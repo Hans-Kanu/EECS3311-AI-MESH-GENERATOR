@@ -52,7 +52,7 @@ class GeminiPropertiesTest {
 		GeminiProperties props = loadWithEnvFile(dir.resolve("missing.env"));
 
 		assertThat(props.hasApiKey()).isFalse();
-		assertThat(props.model()).isEqualTo("gemini-2.5-flash");
+		assertThat(props.model()).isEqualTo("gemini-3.8-flash");
 	}
 
 	@Test
