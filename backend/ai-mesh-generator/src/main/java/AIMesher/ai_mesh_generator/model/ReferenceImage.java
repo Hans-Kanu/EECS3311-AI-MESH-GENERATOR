@@ -17,7 +17,8 @@ public class ReferenceImage {
 		this(UUID.randomUUID().toString(), file, angle, origin, sourceUrl, false);
 	}
 
-	private ReferenceImage(String id, File file, Angle angle, ImageOrigin origin, String sourceUrl, boolean excluded) {
+	// Used when loading a saved project, so the image keeps its id and excluded flag.
+	public ReferenceImage(String id, File file, Angle angle, ImageOrigin origin, String sourceUrl, boolean excluded) {
 		this.id = id;
 		this.file = file;
 		this.angle = angle;

@@ -54,6 +54,11 @@ public class Project {
 		return version;
 	}
 
+	// Used when loading a saved project: keeps the version's own snapshot instead of taking a new one.
+	public void addSavedVersion(ModelVersion version) {
+		versions.add(version);
+	}
+
 	public ModelVersion getVersion(int number) {
 		return versions.stream()
 				.filter(version -> version.getNumber() == number)
