@@ -1,0 +1,11 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+config.local.json
+
+# Build output
+target/
+
+# IDE and local tool settings
+.idea/
