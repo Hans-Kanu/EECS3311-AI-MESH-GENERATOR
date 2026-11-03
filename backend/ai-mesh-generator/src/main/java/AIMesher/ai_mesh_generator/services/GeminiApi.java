@@ -70,15 +70,24 @@ public class GeminiApi {
 	}
 
 	// Sends the prompt and images to the configured model and returns the text of its reply.
-	// Temporary errors are retried, doubling the wait each time, for up to MAX_ATTEMPTS requests in total.
 	public String generateContent(String prompt, List<File> images) {
+		return generate(prompt, images, false);
+	}
+
+	// Same, but Gemini must reply with JSON only, with no Markdown fences or text around it.
+	public String generateJson(String prompt, List<File> images) {
+		return generate(prompt, images, true);
+	}
+
+	// Temporary errors are retried, doubling the wait each time, for up to MAX_ATTEMPTS requests in total.
+	private String generate(String prompt, List<File> images, boolean json) {
 		String apiKey = properties.requireApiKey();
 		// Built once, so the images are read and encoded once however many attempts it takes.
 		HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/models/" + properties.model() + ":generateContent"))
 				.timeout(Duration.ofSeconds(120))
 				.header("Content-Type", "application/json")
 				.header("x-goog-api-key", apiKey)
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody(prompt, images)))
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody(prompt, images, json)))
 				.build();
 		Duration delay = FIRST_RETRY_DELAY;
 		for (int attempt = 1; attempt < MAX_ATTEMPTS; attempt++) {
@@ -113,7 +122,7 @@ public class GeminiApi {
 		}
 	}
 
-	private String requestBody(String prompt, List<File> images) {
+	private String requestBody(String prompt, List<File> images, boolean json) {
 		ObjectNode body = mapper.createObjectNode();
 		ArrayNode parts = body.putArray("contents").addObject().putArray("parts");
 		parts.addObject().put("text", prompt);
@@ -121,6 +130,9 @@ public class GeminiApi {
 			parts.addObject().putObject("inlineData")
 					.put("mimeType", mimeType(image))
 					.put("data", Base64.getEncoder().encodeToString(readBytes(image)));
+		}
+		if (json) {
+			body.putObject("generationConfig").put("responseMimeType", "application/json");
 		}
 		return mapper.writeValueAsString(body);
 	}

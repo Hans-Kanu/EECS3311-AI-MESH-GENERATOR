@@ -159,6 +159,24 @@ class GeminiApiTest {
 	}
 
 	@Test
+	void generateJsonAsksGeminiForAJsonReply() {
+		reply(200, OK_REPLY);
+
+		api("real-key").generateJson("Hi", List.of());
+
+		assertTrue(requestBody.contains("\"generationConfig\":{\"responseMimeType\":\"application/json\"}"), requestBody);
+	}
+
+	@Test
+	void generateContentLeavesTheReplyFormatOpen() {
+		reply(200, OK_REPLY);
+
+		api("real-key").generateContent("Hi", List.of());
+
+		assertFalse(requestBody.contains("responseMimeType"), requestBody);
+	}
+
+	@Test
 	void retriesOn503ThenSucceeds() {
 		reply(503, OVERLOADED_REPLY);
 		reply(503, OVERLOADED_REPLY);
