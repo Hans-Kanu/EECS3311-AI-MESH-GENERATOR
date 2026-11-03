@@ -14,7 +14,7 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 // Builds small GLB files in code for the exporter tests. Tests can edit json before build() to make broken files.
-final class TestGlb {
+public final class TestGlb {
 
 	private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
@@ -33,7 +33,7 @@ final class TestGlb {
 	}
 
 	// The triangle (0,0,0) (1,0,0) (0,1,0) facing +Z, with normals, texture coordinates and 16-bit indices.
-	static TestGlb triangle() {
+	public static TestGlb triangle() {
 		TestGlb glb = new TestGlb();
 		glb.mesh(glb.floats("VEC3", 0, 0, 0, 1, 0, 0, 0, 1, 0),
 				glb.floats("VEC3", 0, 0, 1, 0, 0, 1, 0, 0, 1),
@@ -145,7 +145,7 @@ final class TestGlb {
 		return glb.array();
 	}
 
-	File write(Path dir) throws IOException {
+	public File write(Path dir) throws IOException {
 		return write(dir, build());
 	}
 

@@ -1,10 +1,14 @@
 package AIMesher.ai_mesh_generator.controller;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import AIMesher.ai_mesh_generator.exporter.ExportFormat;
+import AIMesher.ai_mesh_generator.exporter.ExporterFactory;
+import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
 import AIMesher.ai_mesh_generator.services.ProjectRepository;
 
@@ -17,10 +21,12 @@ public class AppController {
 	private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9 _-]{1,50}");
 
 	private final ProjectRepository repository;
+	private final ExporterFactory exporterFactory;
 	private Project currentProject;
 
-	public AppController(ProjectRepository repository) {
+	public AppController(ProjectRepository repository, ExporterFactory exporterFactory) {
 		this.repository = repository;
+		this.exporterFactory = exporterFactory;
 	}
 
 	public List<String> listProjects() {
@@ -63,6 +69,44 @@ public class AppController {
 		if (isOpen(name)) {
 			currentProject = null;
 		}
+	}
+
+	public Project getCurrentProject() {
+		if (currentProject == null) {
+			throw new IllegalArgumentException("Open a project first: projects open <name>");
+		}
+		return currentProject;
+	}
+
+	// Makes the version current (F09). A version whose model file is gone can't be restored.
+	public ModelVersion restoreVersion(int number) {
+		Project project = getCurrentProject();
+		ModelVersion version = availableVersion(project, number);
+		project.setCurrentVersion(number);
+		repository.save(project);
+		return version;
+	}
+
+	// The view asks the user to confirm before calling this (UC09 3a). If the current version is deleted,
+	// the most recent remaining one becomes current.
+	public void deleteVersion(int number) {
+		Project project = getCurrentProject();
+		project.removeVersion(number);
+		repository.save(project);
+	}
+
+	// The view asks the user before overwriting an existing file (UC10 2b).
+	public void exportVersion(int number, ExportFormat format, Path path) {
+		ModelVersion version = availableVersion(getCurrentProject(), number);
+		exporterFactory.create(format).export(version.getModelFile(), path);
+	}
+
+	private static ModelVersion availableVersion(Project project, int number) {
+		ModelVersion version = project.getVersion(number);
+		if (!version.isAvailable()) {
+			throw new IllegalArgumentException("Version " + number + "'s model file is missing.");
+		}
+		return version;
 	}
 
 	private static String validateName(String name) {

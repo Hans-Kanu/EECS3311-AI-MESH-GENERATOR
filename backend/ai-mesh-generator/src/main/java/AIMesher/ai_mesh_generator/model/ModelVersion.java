@@ -38,4 +38,9 @@ public class ModelVersion {
 	public ReferenceImageSet getReferenceSnapshot() {
 		return referenceSnapshot;
 	}
+
+	// False when the model file has been moved or deleted (F09: shown as unavailable instead of failing later).
+	public boolean isAvailable() {
+		return modelFile != null && modelFile.isFile();
+	}
 }
