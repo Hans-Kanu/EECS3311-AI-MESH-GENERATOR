@@ -57,7 +57,7 @@ class GeminiPropertiesTest {
 
 	@Test
 	void blankKeyIsRejectedWithSetupInstructions() {
-		GeminiProperties props = new GeminiProperties("  ", "m");
+		GeminiProperties props = new GeminiProperties("  ", "m", "test-image-model");
 
 		assertThatThrownBy(props::requireApiKey)
 				.isInstanceOf(IllegalStateException.class)
@@ -66,7 +66,7 @@ class GeminiPropertiesTest {
 
 	@Test
 	void placeholderKeyFromExampleFileIsRejected() {
-		GeminiProperties props = new GeminiProperties(GeminiProperties.PLACEHOLDER_KEY, "m");
+		GeminiProperties props = new GeminiProperties(GeminiProperties.PLACEHOLDER_KEY, "m", "test-image-model");
 
 		assertThat(props.hasApiKey()).isFalse();
 		assertThatThrownBy(props::requireApiKey).isInstanceOf(IllegalStateException.class);

@@ -74,7 +74,7 @@ class GeminiApiTest {
 	}
 
 	private GeminiApi api(String key, GeminiApi.Sleeper sleeper) {
-		return new GeminiApi(new GeminiProperties(key, "test-model"),
+		return new GeminiApi(new GeminiProperties(key, "test-model", "test-image-model"),
 				"http://127.0.0.1:" + server.getAddress().getPort(), sleeper);
 	}
 
@@ -106,6 +106,32 @@ class GeminiApiTest {
 		assertTrue(requestBody.contains("\"text\":\"What is this?\""));
 		assertTrue(requestBody.contains("\"mimeType\":\"image/png\""));
 		assertTrue(requestBody.contains(Base64.getEncoder().encodeToString(new byte[] { 1, 2, 3 })));
+	}
+
+	@Test
+	void generateImageUsesTheImageModelAndDecodesTheImagePart() {
+		String pixels = Base64.getEncoder().encodeToString(new byte[] { 4, 5, 6 });
+		reply(200, """
+				{"candidates":[{"content":{"parts":[{"text":"Here it is"},{"inlineData":{"mimeType":"image/jpeg","data":"%s"}}]}}]}"""
+				.formatted(pixels));
+
+		GeminiApi.GeneratedImage image = api("real-key").generateImage("Draw a chair", List.of());
+
+		assertEquals("/models/test-image-model:generateContent", requestPath);
+		assertTrue(requestBody.contains("\"responseModalities\":[\"TEXT\",\"IMAGE\"]"));
+		assertEquals("image/jpeg", image.mimeType());
+		assertEquals(List.of((byte) 4, (byte) 5, (byte) 6), List.of(image.data()[0], image.data()[1], image.data()[2]));
+	}
+
+	@Test
+	void generateImageFailsClearlyWhenTheReplyHasNoImage() {
+		reply(200, """
+				{"candidates":[{"content":{"parts":[{"text":"I can't draw that"}]},"finishReason":"STOP"}]}""");
+
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> api("real-key").generateImage("Draw a chair", List.of()));
+
+		assertTrue(error.getMessage().contains("no image"));
 	}
 
 	@Test

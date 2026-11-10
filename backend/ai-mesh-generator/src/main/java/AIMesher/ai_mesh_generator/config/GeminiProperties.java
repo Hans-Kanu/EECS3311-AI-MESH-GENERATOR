@@ -2,9 +2,10 @@ package AIMesher.ai_mesh_generator.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-// Bound from the gemini.* properties, which read GEMINI_API_KEY / GEMINI_MODEL from .env or the environment.
+// Bound from the gemini.* properties, which read GEMINI_API_KEY / GEMINI_MODEL / GEMINI_IMAGE_MODEL from .env or the
+// environment. model is the reasoning (vision) model; imageModel generates images.
 @ConfigurationProperties(prefix = "gemini")
-public record GeminiProperties(String apiKey, String model) {
+public record GeminiProperties(String apiKey, String model, String imageModel) {
 
 	static final String PLACEHOLDER_KEY = "YOUR_LOCAL_API_KEY_HERE";
 

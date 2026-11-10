@@ -69,37 +69,57 @@ public class GeminiApi {
 		this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 	}
 
+	// An image in Gemini's reply, as raw bytes plus its MIME type (for example "image/png").
+	public record GeneratedImage(byte[] data, String mimeType) {
+	}
+
 	// Sends the prompt and images to the configured model and returns the text of its reply.
 	public String generateContent(String prompt, List<File> images) {
-		return generate(prompt, images, false);
+		return text(call(properties.model(), requestBody(prompt, images, false, false)));
 	}
 
 	// Same, but Gemini must reply with JSON only, with no Markdown fences or text around it.
 	public String generateJson(String prompt, List<File> images) {
-		return generate(prompt, images, true);
+		return text(call(properties.model(), requestBody(prompt, images, true, false)));
 	}
 
+	// Sends the prompt and reference images to the image model and returns the first image in its reply.
+	public GeneratedImage generateImage(String prompt, List<File> images) {
+		JsonNode candidate = call(properties.imageModel(), requestBody(prompt, images, false, true));
+		JsonNode parts = candidate.path("content").path("parts");
+		for (int i = 0; i < parts.size(); i++) {
+			JsonNode data = parts.get(i).path("inlineData");
+			if (!data.isMissingNode()) {
+				return new GeneratedImage(Base64.getDecoder().decode(data.path("data").asString("")),
+						data.path("mimeType").asString("image/png"));
+			}
+		}
+		String reason = candidate.path("finishReason").asString("unknown");
+		throw new IllegalStateException("Gemini returned no image (finish reason: " + reason + ").");
+	}
+
+	// Posts the body to the model and returns the first candidate of a successful reply.
 	// Temporary errors are retried, doubling the wait each time, for up to MAX_ATTEMPTS requests in total.
-	private String generate(String prompt, List<File> images, boolean json) {
+	private JsonNode call(String model, String body) {
 		String apiKey = properties.requireApiKey();
 		// Built once, so the images are read and encoded once however many attempts it takes.
-		HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/models/" + properties.model() + ":generateContent"))
+		HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/models/" + model + ":generateContent"))
 				.timeout(Duration.ofSeconds(120))
 				.header("Content-Type", "application/json")
 				.header("x-goog-api-key", apiKey)
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody(prompt, images, json)))
+				.POST(HttpRequest.BodyPublishers.ofString(body))
 				.build();
 		Duration delay = FIRST_RETRY_DELAY;
 		for (int attempt = 1; attempt < MAX_ATTEMPTS; attempt++) {
 			HttpResponse<String> response = send(request);
 			// Decided on the status alone: an overloaded server may not send a JSON body.
 			if (!RETRYABLE_STATUSES.contains(response.statusCode())) {
-				return replyText(response, attempt);
+				return candidate(response, attempt);
 			}
 			pause(delay);
 			delay = delay.multipliedBy(2);
 		}
-		return replyText(send(request), MAX_ATTEMPTS);
+		return candidate(send(request), MAX_ATTEMPTS);
 	}
 
 	private HttpResponse<String> send(HttpRequest request) {
@@ -122,7 +142,7 @@ public class GeminiApi {
 		}
 	}
 
-	private String requestBody(String prompt, List<File> images, boolean json) {
+	private String requestBody(String prompt, List<File> images, boolean json, boolean wantImage) {
 		ObjectNode body = mapper.createObjectNode();
 		ArrayNode parts = body.putArray("contents").addObject().putArray("parts");
 		parts.addObject().put("text", prompt);
@@ -134,10 +154,13 @@ public class GeminiApi {
 		if (json) {
 			body.putObject("generationConfig").put("responseMimeType", "application/json");
 		}
+		if (wantImage) {
+			body.putObject("generationConfig").putArray("responseModalities").add("TEXT").add("IMAGE");
+		}
 		return mapper.writeValueAsString(body);
 	}
 
-	private String replyText(HttpResponse<String> response, int attempts) {
+	private JsonNode candidate(HttpResponse<String> response, int attempts) {
 		String tries = attempts > 1 ? " after " + attempts + " attempts" : "";
 		JsonNode root;
 		try {
@@ -156,6 +179,10 @@ public class GeminiApi {
 			String reason = root.path("promptFeedback").path("blockReason").asString("no reason given");
 			throw new IllegalStateException("Gemini returned no answer (blocked: " + reason + ").");
 		}
+		return candidate;
+	}
+
+	private static String text(JsonNode candidate) {
 		// A reply can be split over several text parts.
 		StringBuilder text = new StringBuilder();
 		JsonNode parts = candidate.path("content").path("parts");

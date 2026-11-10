@@ -28,7 +28,7 @@ class GeminiVisionAdapterTest {
 		List<File> images;
 
 		StubGemini() {
-			super(new GeminiProperties("test-key", "test-model"), "http://unused", delay -> {
+			super(new GeminiProperties("test-key", "test-model", "test-image-model"), "http://unused", delay -> {
 			});
 		}
 
