@@ -1,6 +1,7 @@
 package AIMesher.ai_mesh_generator.view;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -26,6 +27,8 @@ import AIMesher.ai_mesh_generator.controller.AppController;
 import AIMesher.ai_mesh_generator.exporter.ExportFormat;
 import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
+import AIMesher.ai_mesh_generator.model.ReferenceImage;
+import AIMesher.ai_mesh_generator.model.ReferenceImageSet;
 
 // The command-line view. It only parses commands and prints results; all the work goes through
 // the same AppController as the GUI. Starts only with the "cli" profile (see application-cli.properties).
@@ -40,6 +43,9 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 	private static final String RESTORE_USAGE = "versions restore <number>";
 	private static final String DELETE_USAGE = "versions delete <number>";
 	private static final String EXPORT_USAGE = "export <number> --format obj|stl --out <file>";
+	private static final String GENERATE_USAGE = "generate [--image <file>]... [--describe \"<text>\"]";
+	private static final String EXCLUDE_USAGE = "images exclude <number>";
+	private static final String INCLUDE_USAGE = "images include <number>";
 
 	private final AppController controller;
 	private final BufferedReader in;
@@ -60,15 +66,21 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 	@Override
 	public void run(String... args) {
 		out.println("AI Mesh Generator. Type help for the list of commands.");
+		// Observer: the agent's progress is printed as it happens (onProgress / onError below).
+		controller.addProgressListener(this);
 		running = true;
-		while (running) {
-			out.print("> ");
-			out.flush();
-			String line = readLine();
-			if (line == null) {
-				break;
+		try {
+			while (running) {
+				out.print("> ");
+				out.flush();
+				String line = readLine();
+				if (line == null) {
+					break;
+				}
+				parseCommand(line);
 			}
-			parseCommand(line);
+		} finally {
+			controller.removeProgressListener(this);
 		}
 	}
 
@@ -92,12 +104,99 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 				case "projects" -> projects(words.subList(1, words.size()));
 				case "versions" -> versions(words.subList(1, words.size()));
 				case "export" -> export(words.subList(1, words.size()));
+				case "generate" -> generate(words.subList(1, words.size()));
+				case "images" -> images(words.subList(1, words.size()));
+				case "build" -> build();
 				case "help" -> printHelp();
 				case "exit", "quit" -> running = false;
 				default -> out.println("Unknown command \"" + words.get(0) + "\". Type help for the list of commands.");
 			}
 		} catch (IllegalArgumentException | UncheckedIOException e) {
 			out.println("Error: " + e.getMessage());
+		}
+	}
+
+	// F02: generate --image a.png --image b.jpg --describe "red stool", with any mix of the options.
+	private void generate(List<String> args) {
+		List<File> images = new ArrayList<>();
+		String description = null;
+		if (args.isEmpty() || args.size() % 2 != 0) {
+			throw new IllegalArgumentException("Usage: " + GENERATE_USAGE);
+		}
+		for (int i = 0; i < args.size(); i += 2) {
+			switch (args.get(i).toLowerCase()) {
+				case "--image" -> images.add(new File(args.get(i + 1)));
+				case "--describe" -> description = args.get(i + 1);
+				default -> throw new IllegalArgumentException("Usage: " + GENERATE_USAGE);
+			}
+		}
+		controller.getCurrentProject();
+		try {
+			ReferenceImageSet set = controller.generateReferences(images, description);
+			out.println("Generated " + set.getImages().size() + " reference images:");
+			listImages(set);
+			out.println("Review them with images exclude/include, then run build.");
+		} catch (IllegalStateException e) {
+			// The agent has already printed the error through onError().
+			out.println("Generation stopped. The project's reference images were not changed.");
+		}
+	}
+
+	// F05: lists the reference set with where each image came from, and lets the user leave images out.
+	private void images(List<String> args) {
+		String action = args.isEmpty() ? "list" : args.get(0).toLowerCase();
+		switch (action) {
+			case "list" -> {
+				ReferenceImageSet set = controller.getCurrentProject().getReferenceSet();
+				if (set.getImages().isEmpty()) {
+					out.println("This project has no reference images yet. Use generate to create them.");
+				} else {
+					listImages(set);
+				}
+			}
+			case "exclude" -> {
+				requireArgs(args, 1, EXCLUDE_USAGE);
+				controller.excludeImage(imageAt(parseNumber(args.get(1), EXCLUDE_USAGE)).getId());
+				out.println("Image " + args.get(1) + " will be left out of the next build.");
+			}
+			case "include" -> {
+				requireArgs(args, 1, INCLUDE_USAGE);
+				controller.includeImage(imageAt(parseNumber(args.get(1), INCLUDE_USAGE)).getId());
+				out.println("Image " + args.get(1) + " is back in the set.");
+			}
+			default -> out.println("Unknown images command \"" + args.get(0) + "\". Type help for the list of commands.");
+		}
+	}
+
+	private void listImages(ReferenceImageSet set) {
+		List<ReferenceImage> images = set.getImages();
+		for (int i = 0; i < images.size(); i++) {
+			ReferenceImage image = images.get(i);
+			String role = switch (image.getOrigin()) {
+				case AI_GENERATED -> image.getAngle().name().toLowerCase() + " view (AI-generated, used for the model)";
+				case UPLOADED -> "your image (reference only)";
+				case WEB -> "web photo from " + image.getSourceUrl() + " (reference only)";
+			};
+			out.println("  " + (i + 1) + ". " + role + (image.isExcluded() ? "  [excluded]" : ""));
+			out.println("     " + image.getFile());
+		}
+	}
+
+	private ReferenceImage imageAt(int number) {
+		List<ReferenceImage> images = controller.getCurrentProject().getReferenceSet().getImages();
+		if (number < 1 || number > images.size()) {
+			throw new IllegalArgumentException("No image " + number + ". Type images list to see the numbers.");
+		}
+		return images.get(number - 1);
+	}
+
+	// F08: builds a model from the generated views and saves it as a new version.
+	private void build() {
+		try {
+			ModelVersion version = controller.buildModel();
+			out.println("Saved the model as version " + version.getNumber() + ".");
+		} catch (IllegalStateException e) {
+			out.println("No model was built.");
 		}
 	}
 
@@ -271,6 +370,13 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 				  versions delete <number>                Delete a version (asks first)
 				  export <number> --format obj|stl --out <file>
 				                                          Export a version to an OBJ or STL file
+				  generate [--image <file>]... [--describe "<text>"]
+				                                          Identify the object, collect photos and generate
+				                                          the front, left, right and back views
+				  images list                             List the reference images and where they came from
+				  images exclude <number>                 Leave an image out of the next build
+				  images include <number>                 Put an excluded image back
+				  build                                   Build a 3D model from the views (new version)
 				  help                                    Show this list
 				  exit                                    Quit
 				Put names that contain spaces in quotes, for example: projects new "Office chair\"""");

@@ -249,4 +249,74 @@ class CliAppTest {
 		assertTrue(printed.contains("[SEARCHING] Found 4 photos"));
 		assertTrue(printed.contains("[BUILDING_MESH] Error: Hunyuan 3D timed out"));
 	}
+
+	@Test
+	void generateFromADescriptionPrintsProgressAndTheNewImages() {
+		String printed = run("projects new Stool", "generate --describe \"red wooden stool\"");
+
+		assertTrue(printed.contains("[GENERATING_IMAGE] Writing an image prompt"));
+		assertTrue(printed.contains("[GENERATING_ANGLES] Generating the front view..."));
+		assertTrue(printed.contains("Generated 4 reference images:"));
+		assertTrue(printed.contains("1. front view (AI-generated, used for the model)"));
+		assertTrue(printed.contains("4. back view (AI-generated, used for the model)"));
+	}
+
+	@Test
+	void generateWithAnImageListsItAsAReference() throws Exception {
+		File photo = Files.write(models.resolve("chair.png"), new byte[] { 1, 2 }).toFile();
+
+		String printed = run("projects new Chair", "generate --image \"" + photo + "\"");
+
+		assertTrue(printed.contains("1. your image (reference only)"));
+		assertTrue(printed.contains("Generated 5 reference images:"));
+	}
+
+	@Test
+	void generateWithoutInputShowsUsage() {
+		String printed = run("projects new Stool", "generate");
+
+		assertTrue(printed.contains("Usage: generate"));
+	}
+
+	@Test
+	void generateNeedsAnOpenProject() {
+		String printed = run("generate --describe stool");
+
+		assertTrue(printed.contains("Open a project first"));
+	}
+
+	@Test
+	void imagesCanBeExcludedAndIncludedByNumber() {
+		String printed = run("projects new Stool", "generate --describe stool", "images exclude 4", "images list",
+				"images exclude 1", "images include 4");
+
+		assertTrue(printed.contains("Image 4 will be left out of the next build."));
+		assertTrue(printed.contains("back view (AI-generated, used for the model)  [excluded]"));
+		assertTrue(printed.contains("Error: The front view can't be excluded"));
+		assertTrue(printed.contains("Image 4 is back in the set."));
+	}
+
+	@Test
+	void unknownImageNumberIsReported() {
+		String printed = run("projects new Stool", "images exclude 3");
+
+		assertTrue(printed.contains("No image 3."));
+	}
+
+	@Test
+	void buildSavesANewVersion() {
+		String printed = run("projects new Stool", "generate --describe stool", "build", "versions list");
+
+		assertTrue(printed.contains("[BUILDING_MESH] Sending 4 views to the 3D generator..."));
+		assertTrue(printed.contains("Saved the model as version 1."));
+		assertTrue(printed.contains("v1"));
+	}
+
+	@Test
+	void buildWithoutViewsReportsTheProblem() {
+		String printed = run("projects new Stool", "build");
+
+		assertTrue(printed.contains("[BUILDING_MESH] Error: There is no generated front view."));
+		assertTrue(printed.contains("No model was built."));
+	}
 }
