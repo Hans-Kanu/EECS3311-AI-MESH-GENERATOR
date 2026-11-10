@@ -60,7 +60,7 @@ final class Fakes {
 	record Call(String method, Angle angle, List<File> refs, String text) {
 	}
 
-	static final class Generator implements ImageGenerator {
+	static class Generator implements ImageGenerator {
 
 		final List<Call> calls = new ArrayList<>();
 
