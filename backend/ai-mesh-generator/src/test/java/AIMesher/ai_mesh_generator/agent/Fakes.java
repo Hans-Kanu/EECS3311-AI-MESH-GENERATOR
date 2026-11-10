@@ -63,17 +63,30 @@ final class Fakes {
 	static class Generator implements ImageGenerator {
 
 		final List<Call> calls = new ArrayList<>();
+		// When set, generated views are real files in this folder (needed when the caller copies them).
+		java.nio.file.Path outputDir;
 
 		@Override
 		public File generateFromPrompt(String prompt) {
 			calls.add(new Call("prompt", Angle.FRONT, List.of(), prompt));
-			return new File("gen-" + calls.size() + "-front.png");
+			return file("gen-" + calls.size() + "-front.png");
 		}
 
 		@Override
 		public File generateAngle(List<File> refs, String subject, Angle angle) {
 			calls.add(new Call("angle", angle, List.copyOf(refs), subject));
-			return new File("gen-" + calls.size() + "-" + angle.name().toLowerCase() + ".png");
+			return file("gen-" + calls.size() + "-" + angle.name().toLowerCase() + ".png");
+		}
+
+		private File file(String name) {
+			if (outputDir == null) {
+				return new File(name);
+			}
+			try {
+				return java.nio.file.Files.write(outputDir.resolve(name), new byte[] { 1 }).toFile();
+			} catch (java.io.IOException e) {
+				throw new java.io.UncheckedIOException(e);
+			}
 		}
 	}
 

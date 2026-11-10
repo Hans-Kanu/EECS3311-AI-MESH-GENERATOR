@@ -1,19 +1,26 @@
 package AIMesher.ai_mesh_generator.controller;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import AIMesher.ai_mesh_generator.agent.ModelAgent;
+import AIMesher.ai_mesh_generator.agent.ProgressListener;
 import AIMesher.ai_mesh_generator.exporter.ExportFormat;
 import AIMesher.ai_mesh_generator.exporter.ExporterFactory;
+import AIMesher.ai_mesh_generator.model.GenerationRequest;
 import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
+import AIMesher.ai_mesh_generator.model.ReferenceImage;
+import AIMesher.ai_mesh_generator.model.ReferenceImageSet;
 import AIMesher.ai_mesh_generator.services.ProjectRepository;
 
 // MVC controller shared by the GUI and the CLI. Invalid requests throw IllegalArgumentException
-// with a message the view shows through showError().
+// with a message the view shows through showError(). AI work goes through the ModelAgent facade; its failures
+// are IllegalStateExceptions that the agent has already reported to the progress listeners.
 @Component
 public class AppController {
 
@@ -22,11 +29,64 @@ public class AppController {
 
 	private final ProjectRepository repository;
 	private final ExporterFactory exporterFactory;
+	private final ModelAgent agent;
 	private Project currentProject;
 
-	public AppController(ProjectRepository repository, ExporterFactory exporterFactory) {
+	public AppController(ProjectRepository repository, ExporterFactory exporterFactory, ModelAgent agent) {
 		this.repository = repository;
 		this.exporterFactory = exporterFactory;
+		this.agent = agent;
+	}
+
+	// The views register here to see the agent's progress (Observer).
+	public void addProgressListener(ProgressListener listener) {
+		agent.addListener(listener);
+	}
+
+	public void removeProgressListener(ProgressListener listener) {
+		agent.removeListener(listener);
+	}
+
+	// Runs the agent on the user's images and/or description (F02-F04, F06, F07) and makes the result the open
+	// project's reference set. Every image is copied into the project, so it stays after temp files are cleaned up.
+	public ReferenceImageSet generateReferences(List<File> images, String description) {
+		Project project = getCurrentProject();
+		ReferenceImageSet generated = agent.startGeneration(new GenerationRequest(images, description));
+		ReferenceImageSet stored = new ReferenceImageSet();
+		for (ReferenceImage image : generated.getImages()) {
+			File copy = repository.importFile(project, image.getFile(), "images");
+			stored.add(new ReferenceImage(copy, image.getAngle(), image.getOrigin(), image.getSourceUrl()));
+		}
+		project.setReferenceSet(stored);
+		repository.save(project);
+		return stored;
+	}
+
+	// F05: the user leaves an image out of the set. The set refuses to lose its last front view or last image.
+	public void excludeImage(String imageId) {
+		Project project = getCurrentProject();
+		try {
+			project.getReferenceSet().exclude(imageId);
+		} catch (IllegalStateException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+		repository.save(project);
+	}
+
+	public void includeImage(String imageId) {
+		Project project = getCurrentProject();
+		project.getReferenceSet().include(imageId);
+		repository.save(project);
+	}
+
+	// F08: builds a mesh from the generated views and saves it as a new version, which snapshots the reference set
+	// it was built from (Prototype, in Project.addVersion()).
+	public ModelVersion buildModel() {
+		Project project = getCurrentProject();
+		File model = agent.buildMesh(project.getReferenceSet());
+		ModelVersion version = project.addVersion(repository.importFile(project, model, "models"));
+		repository.save(project);
+		return version;
 	}
 
 	public List<String> listProjects() {

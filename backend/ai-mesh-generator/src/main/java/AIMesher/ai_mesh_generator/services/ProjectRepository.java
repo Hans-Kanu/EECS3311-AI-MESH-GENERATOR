@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -94,6 +95,24 @@ public class ProjectRepository {
 
 	public boolean exists(String name) {
 		return Files.isRegularFile(dir(name).resolve(PROJECT_FILE));
+	}
+
+	// Copies a file (an image or a model the agent made in a temp folder) into the project's folder, so it is kept
+	// with the project and survives renames. Returns the copy.
+	public File importFile(Project project, File source, String folder) {
+		String name = source.getName();
+		int dot = name.lastIndexOf('.');
+		String extension = dot < 0 ? "" : name.substring(dot);
+		String base = dot < 0 ? name : name.substring(0, dot);
+		Path target = dir(project.getName()).resolve(folder)
+				.resolve(base + "-" + UUID.randomUUID().toString().substring(0, 8) + extension);
+		try {
+			Files.createDirectories(target.getParent());
+			Files.copy(source.toPath(), target);
+			return target.toFile();
+		} catch (IOException e) {
+			throw new UncheckedIOException("Could not copy " + name + " into project " + project.getName(), e);
+		}
 	}
 
 	public void rename(String oldName, String newName) {

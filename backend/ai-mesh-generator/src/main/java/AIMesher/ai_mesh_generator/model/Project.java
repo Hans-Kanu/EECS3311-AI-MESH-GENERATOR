@@ -12,7 +12,7 @@ public class Project {
 	private final LocalDateTime createdAt;
 	// 0 means no version has been built yet.
 	private int currentVersion;
-	private final ReferenceImageSet referenceSet = new ReferenceImageSet();
+	private ReferenceImageSet referenceSet = new ReferenceImageSet();
 	private final List<ModelVersion> versions = new ArrayList<>();
 
 	public Project(String name) {
@@ -39,6 +39,11 @@ public class Project {
 
 	public ReferenceImageSet getReferenceSet() {
 		return referenceSet;
+	}
+
+	// A new generation run replaces the working set; older versions keep their own snapshots.
+	public void setReferenceSet(ReferenceImageSet referenceSet) {
+		this.referenceSet = referenceSet;
 	}
 
 	public List<ModelVersion> getVersions() {

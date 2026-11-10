@@ -13,10 +13,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import AIMesher.ai_mesh_generator.agent.TestAgent;
 import AIMesher.ai_mesh_generator.exporter.ExportFormat;
 import AIMesher.ai_mesh_generator.exporter.ExporterFactory;
 import AIMesher.ai_mesh_generator.exporter.TestGlb;
+import AIMesher.ai_mesh_generator.model.ImageOrigin;
+import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
+import AIMesher.ai_mesh_generator.model.ReferenceImage;
+import AIMesher.ai_mesh_generator.model.ReferenceImageSet;
 import AIMesher.ai_mesh_generator.services.ProjectRepository;
 
 class AppControllerTest {
@@ -32,7 +37,7 @@ class AppControllerTest {
 
 	@BeforeEach
 	void setUp() {
-		controller = new AppController(new ProjectRepository(root), new ExporterFactory());
+		controller = new AppController(new ProjectRepository(root), new ExporterFactory(), new TestAgent(models).agent);
 	}
 
 	@Test
@@ -111,7 +116,7 @@ class AppControllerTest {
 	}
 
 	private Project reopened() {
-		return new AppController(new ProjectRepository(root), new ExporterFactory()).openProject("Chair");
+		return new AppController(new ProjectRepository(root), new ExporterFactory(), new TestAgent(models).agent).openProject("Chair");
 	}
 
 	@Test
@@ -175,5 +180,68 @@ class AppControllerTest {
 		assertThrows(IllegalArgumentException.class, () -> controller.deleteVersion(1));
 		assertThrows(IllegalArgumentException.class,
 				() -> controller.exportVersion(1, ExportFormat.OBJ, models.resolve("chair.obj")));
+	}
+
+	@Test
+	void generateReferencesStoresEveryImageInTheProjectAndSavesIt() throws Exception {
+		controller.createProject("Stool");
+		File photo = Files.write(models.resolve("photo.png"), new byte[] { 1, 2, 3 }).toFile();
+
+		ReferenceImageSet set = controller.generateReferences(List.of(photo), "red stool");
+
+		assertEquals(5, set.getImages().size());
+		Path projectDir = root.resolve("Stool").toAbsolutePath();
+		for (ReferenceImage image : set.getImages()) {
+			assertTrue(image.getFile().toPath().toAbsolutePath().startsWith(projectDir.resolve("images")));
+			assertTrue(image.getFile().isFile());
+		}
+		Project reloaded = new ProjectRepository(root).load("Stool");
+		assertEquals(List.of(ImageOrigin.UPLOADED, ImageOrigin.AI_GENERATED, ImageOrigin.AI_GENERATED,
+				ImageOrigin.AI_GENERATED, ImageOrigin.AI_GENERATED),
+				reloaded.getReferenceSet().getImages().stream().map(ReferenceImage::getOrigin).toList());
+	}
+
+	@Test
+	void generateReferencesNeedsAnOpenProject() {
+		assertThrows(IllegalArgumentException.class, () -> controller.generateReferences(List.of(), "stool"));
+	}
+
+	@Test
+	void buildModelSavesANewVersionWithASnapshotOfTheSet() {
+		controller.createProject("Stool");
+		controller.generateReferences(List.of(), "red stool");
+
+		ModelVersion version = controller.buildModel();
+
+		assertEquals(1, version.getNumber());
+		assertTrue(version.getModelFile().toPath().toAbsolutePath()
+				.startsWith(root.resolve("Stool").resolve("models").toAbsolutePath()));
+		assertEquals(4, version.getReferenceSnapshot().getImages().size());
+		assertEquals(1, new ProjectRepository(root).load("Stool").getCurrentVersion());
+	}
+
+	@Test
+	void excludingTheOnlyFrontViewIsRejectedWithAMessage() {
+		controller.createProject("Stool");
+		ReferenceImageSet set = controller.generateReferences(List.of(), "red stool");
+		String front = set.getImages().get(0).getId();
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> controller.excludeImage(front));
+
+		assertTrue(error.getMessage().contains("front view"));
+	}
+
+	@Test
+	void excludedImagesStayExcludedAfterReloading() {
+		controller.createProject("Stool");
+		ReferenceImageSet set = controller.generateReferences(List.of(), "red stool");
+		String back = set.getImages().get(3).getId();
+
+		controller.excludeImage(back);
+
+		assertTrue(new ProjectRepository(root).load("Stool").getReferenceSet().getImages().get(3).isExcluded());
+		controller.includeImage(back);
+		assertEquals(4, new ProjectRepository(root).load("Stool").getReferenceSet().getIncluded().size());
 	}
 }

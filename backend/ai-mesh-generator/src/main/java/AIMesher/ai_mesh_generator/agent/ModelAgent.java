@@ -102,11 +102,11 @@ public class ModelAgent {
 	// Sends the included AI-generated views to the mesh generator and waits for the model file (F08).
 	// Web and uploaded photos are references only; they never go to the mesh generator.
 	public File buildMesh(ReferenceImageSet set) {
-		Map<Angle, File> views = meshViews(set);
-		if (mesh == null) {
-			throw new IllegalStateException("No 3D generation service is configured. Set the Hunyuan 3D keys in .env.");
-		}
 		try {
+			Map<Angle, File> views = meshViews(set);
+			if (mesh == null) {
+				throw new IllegalStateException("No 3D generation service is configured. Set the Hunyuan 3D keys in .env.");
+			}
 			notifyProgress(Stage.BUILDING_MESH, "Sending " + views.size() + " views to the 3D generator...");
 			String jobId = mesh.submitJob(views);
 			waitFor(jobId);

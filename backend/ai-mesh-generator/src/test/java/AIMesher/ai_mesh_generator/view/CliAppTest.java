@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import AIMesher.ai_mesh_generator.agent.Stage;
+import AIMesher.ai_mesh_generator.agent.TestAgent;
 import AIMesher.ai_mesh_generator.controller.AppController;
 import AIMesher.ai_mesh_generator.exporter.ExporterFactory;
 import AIMesher.ai_mesh_generator.exporter.TestGlb;
@@ -37,7 +38,7 @@ class CliAppTest {
 
 	@BeforeEach
 	void setUp() {
-		controller = new AppController(new ProjectRepository(root), new ExporterFactory());
+		controller = new AppController(new ProjectRepository(root), new ExporterFactory(), new TestAgent(models).agent);
 	}
 
 	// Runs the CLI with the given lines typed in, and returns everything it printed.
