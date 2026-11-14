@@ -3,8 +3,10 @@ package AIMesher.ai_mesh_generator.services;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -20,6 +22,7 @@ import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
 import AIMesher.ai_mesh_generator.model.ReferenceImage;
 import AIMesher.ai_mesh_generator.model.ReferenceImageSet;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,9 +49,21 @@ public class ProjectRepository {
 				project.getVersions().stream().map(version -> toData(version, dir)).toList());
 		try {
 			Files.createDirectories(dir);
-			Files.writeString(dir.resolve(PROJECT_FILE), mapper.writeValueAsString(data));
+			// Written to a temp file first and then moved over project.json in one step, so a crash or a full disk
+			// mid-write leaves the previous project.json intact instead of an empty or half-written one.
+			Path temp = dir.resolve(PROJECT_FILE + ".tmp");
+			Files.writeString(temp, mapper.writeValueAsString(data));
+			replace(temp, dir.resolve(PROJECT_FILE));
 		} catch (IOException e) {
 			throw new UncheckedIOException("Could not save project " + project.getName(), e);
+		}
+	}
+
+	private static void replace(Path source, Path target) throws IOException {
+		try {
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+		} catch (AtomicMoveNotSupportedException e) {
+			Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
 		}
 	}
 
@@ -64,6 +79,10 @@ public class ProjectRepository {
 			data = mapper.readValue(Files.readString(dir.resolve(PROJECT_FILE)), ProjectData.class);
 		} catch (IOException e) {
 			throw new UncheckedIOException("Could not load project " + name, e);
+		} catch (JacksonException e) {
+			// Jackson 3's exceptions are unchecked, so without this a bad file would crash the caller.
+			throw new IllegalArgumentException("Project " + name + " can't be opened: its " + PROJECT_FILE
+					+ " is damaged (" + e.getOriginalMessage() + ").", e);
 		}
 		Project project = new Project(dir.getFileName().toString(), data.createdAt());
 		fromData(data.images(), dir, project.getReferenceSet());
@@ -169,15 +188,38 @@ public class ProjectRepository {
 		return stored == null ? null : dir.resolve(stored).toFile();
 	}
 
+	// The checks below reject valid JSON that is missing required fields. Jackson reports a failed check as a
+	// JacksonException, so load() treats it like any other damaged file.
 	private record ProjectData(LocalDateTime createdAt, int currentVersion, List<ImageData> images,
 			List<VersionData> versions) {
+		ProjectData {
+			required(createdAt, "createdAt");
+			required(images, "images");
+			required(versions, "versions");
+		}
 	}
 
 	private record VersionData(int number, LocalDateTime createdAt, String modelFile,
 			List<ImageData> referenceSnapshot) {
+		VersionData {
+			required(createdAt, "a version's createdAt");
+			required(referenceSnapshot, "a version's referenceSnapshot");
+		}
 	}
 
 	private record ImageData(String id, String file, Angle angle, ImageOrigin origin, String sourceUrl,
 			boolean excluded) {
+		ImageData {
+			required(id, "an image's id");
+			required(file, "an image's file");
+			required(angle, "an image's angle");
+			required(origin, "an image's origin");
+		}
+	}
+
+	private static void required(Object value, String field) {
+		if (value == null) {
+			throw new IllegalArgumentException(field + " is missing");
+		}
 	}
 }

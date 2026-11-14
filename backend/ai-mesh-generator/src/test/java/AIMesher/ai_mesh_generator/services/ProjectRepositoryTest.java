@@ -26,6 +26,38 @@ class ProjectRepositoryTest {
 	Path root;
 
 	@Test
+	void aDamagedProjectFileGivesAClearErrorInsteadOfCrashing() throws Exception {
+		ProjectRepository repository = new ProjectRepository(root);
+		Files.createDirectories(root.resolve("Cut"));
+		Files.writeString(root.resolve("Cut").resolve("project.json"), "{\"createdAt\":\"2026-11-14T15:10:23\",\"ima");
+		Files.createDirectories(root.resolve("Empty"));
+		Files.writeString(root.resolve("Empty").resolve("project.json"), "{}");
+
+		IllegalArgumentException cut = assertThrows(IllegalArgumentException.class, () -> repository.load("Cut"));
+		IllegalArgumentException empty = assertThrows(IllegalArgumentException.class, () -> repository.load("Empty"));
+
+		assertTrue(cut.getMessage().contains("project.json is damaged"), cut.getMessage());
+		assertTrue(empty.getMessage().contains("project.json is damaged"), empty.getMessage());
+		// Still listed, so the user can see it and delete it.
+		assertEquals(List.of("Cut", "Empty"), repository.listNames());
+	}
+
+	@Test
+	void savingAgainReplacesTheFileAndLeavesNoTempFileBehind() throws Exception {
+		ProjectRepository repository = new ProjectRepository(root);
+		Project project = new Project("Chair");
+		repository.save(project);
+		project.addVersion(new File("v1.glb"));
+
+		repository.save(project);
+
+		assertEquals(1, repository.load("Chair").getVersions().size());
+		try (var files = Files.list(root.resolve("Chair"))) {
+			assertEquals(List.of("project.json"), files.map(path -> path.getFileName().toString()).toList());
+		}
+	}
+
+	@Test
 	void saveThenLoadKeepsImagesVersionsAndCurrentVersion() {
 		ProjectRepository repository = new ProjectRepository(root);
 		LocalDateTime created = LocalDateTime.of(2026, 10, 26, 21, 0);
