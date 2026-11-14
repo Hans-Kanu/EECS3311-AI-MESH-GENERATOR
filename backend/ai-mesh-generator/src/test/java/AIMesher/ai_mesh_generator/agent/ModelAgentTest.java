@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -45,6 +47,9 @@ class ModelAgentTest {
 		Map<Angle, File> submitted;
 		final Deque<JobStatus> statuses = new ArrayDeque<>();
 		final File model = new File("model.glb");
+		// How many of the next status checks / downloads fail as if the connection dropped.
+		int statusFailures;
+		int downloadFailures;
 
 		@Override
 		public String submitJob(Map<Angle, File> views) {
@@ -54,11 +59,17 @@ class ModelAgentTest {
 
 		@Override
 		public JobStatus getStatus(String jobId) {
+			if (statusFailures-- > 0) {
+				throw new UncheckedIOException("connection reset", new IOException());
+			}
 			return statuses.size() > 1 ? statuses.poll() : statuses.peek();
 		}
 
 		@Override
 		public File download(String jobId) {
+			if (downloadFailures-- > 0) {
+				throw new UncheckedIOException("connection reset", new IOException());
+			}
 			return model;
 		}
 	}
@@ -173,6 +184,33 @@ class ModelAgentTest {
 		assertTrue(error.getMessage().contains("took longer than"));
 		long expectedPolls = ModelAgent.MAX_MESH_WAIT.dividedBy(ModelAgent.POLL_INTERVAL);
 		assertEquals(expectedPolls, sleeps.size());
+	}
+
+	@Test
+	void aDroppedConnectionWhileWaitingOrDownloadingIsTriedAgain() {
+		ReferenceImageSet set = agent().startGeneration(new GenerationRequest(List.of(), "stool"));
+		mesh.statuses.addAll(List.of(JobStatus.RUNNING, JobStatus.DONE));
+		mesh.statusFailures = ModelAgent.MAX_NETWORK_ATTEMPTS - 1;
+		mesh.downloadFailures = 1;
+
+		File model = agent().buildMesh(set);
+
+		assertEquals(mesh.model, model);
+		assertTrue(listener.said("Checking the job failed (connection reset); trying again"));
+		assertTrue(listener.said("Downloading the model failed (connection reset); trying again"));
+		assertTrue(listener.errors.isEmpty());
+	}
+
+	@Test
+	void aConnectionThatStaysDownStopsTheBuildAndNamesTheJob() {
+		ReferenceImageSet set = agent().startGeneration(new GenerationRequest(List.of(), "stool"));
+		mesh.statuses.add(JobStatus.RUNNING);
+		mesh.statusFailures = ModelAgent.MAX_NETWORK_ATTEMPTS;
+
+		IllegalStateException error = assertThrows(IllegalStateException.class, () -> agent().buildMesh(set));
+
+		assertTrue(error.getMessage().contains("failed 3 times in a row"), error.getMessage());
+		assertTrue(error.getMessage().contains("job-1"), error.getMessage());
 	}
 
 	@Test

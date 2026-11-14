@@ -1,12 +1,14 @@
 package AIMesher.ai_mesh_generator.agent;
 
 import java.io.File;
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -33,6 +35,7 @@ public class ModelAgent {
 
 	static final Duration POLL_INTERVAL = Duration.ofSeconds(10);
 	static final Duration MAX_MESH_WAIT = Duration.ofMinutes(15);
+	static final int MAX_NETWORK_ATTEMPTS = 3;
 
 	// Waits between status checks. Tests pass one that records the wait instead of sleeping.
 	interface Sleeper {
@@ -109,9 +112,10 @@ public class ModelAgent {
 			}
 			notifyProgress(Stage.BUILDING_MESH, "Sending " + views.size() + " views to the 3D generator...");
 			String jobId = mesh.submitJob(views);
+			notifyProgress(Stage.BUILDING_MESH, "The 3D generator accepted the job (id " + jobId + ").");
 			waitFor(jobId);
 			notifyProgress(Stage.BUILDING_MESH, "Downloading the model...");
-			File model = mesh.download(jobId);
+			File model = surviveNetworkErrors(jobId, "Downloading the model", () -> mesh.download(jobId));
 			notifyProgress(Stage.DONE, "The 3D model is ready.");
 			return model;
 		} catch (RuntimeException e) {
@@ -135,7 +139,7 @@ public class ModelAgent {
 
 	private void waitFor(String jobId) {
 		Duration waited = Duration.ZERO;
-		JobStatus status = mesh.getStatus(jobId);
+		JobStatus status = checkStatus(jobId);
 		while (!status.isFinished()) {
 			if (waited.compareTo(MAX_MESH_WAIT) >= 0) {
 				throw new IllegalStateException("The 3D generator took longer than " + MAX_MESH_WAIT.toMinutes()
@@ -143,17 +147,43 @@ public class ModelAgent {
 			}
 			notifyProgress(Stage.BUILDING_MESH, "Building the 3D model (" + status.name().toLowerCase() + ", "
 					+ waited.toSeconds() + "s so far)...");
-			try {
-				sleeper.sleep(POLL_INTERVAL);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new IllegalStateException("Building the model was interrupted.", e);
-			}
+			pause();
 			waited = waited.plus(POLL_INTERVAL);
-			status = mesh.getStatus(jobId);
+			status = checkStatus(jobId);
 		}
 		if (status == JobStatus.FAILED) {
 			throw new IllegalStateException("The 3D generator could not build a model from these views.");
+		}
+	}
+
+	private JobStatus checkStatus(String jobId) {
+		return surviveNetworkErrors(jobId, "Checking the job", () -> mesh.getStatus(jobId));
+	}
+
+	// The job is already paid for and keeps running at the service, so a dropped connection while checking on it
+	// or downloading it is tried again, up to MAX_NETWORK_ATTEMPTS times in a row, instead of losing the model.
+	private <T> T surviveNetworkErrors(String jobId, String what, Supplier<T> call) {
+		for (int attempt = 1;; attempt++) {
+			try {
+				return call.get();
+			} catch (UncheckedIOException e) {
+				if (attempt >= MAX_NETWORK_ATTEMPTS) {
+					throw new IllegalStateException(what + " failed " + attempt + " times in a row (" + e.getMessage()
+							+ "). The job (id " + jobId + ") may still finish at the 3D service.", e);
+				}
+				notifyProgress(Stage.BUILDING_MESH, what + " failed (" + e.getMessage() + "); trying again in "
+						+ POLL_INTERVAL.toSeconds() + "s...");
+				pause();
+			}
+		}
+	}
+
+	private void pause() {
+		try {
+			sleeper.sleep(POLL_INTERVAL);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Building the model was interrupted.", e);
 		}
 	}
 
