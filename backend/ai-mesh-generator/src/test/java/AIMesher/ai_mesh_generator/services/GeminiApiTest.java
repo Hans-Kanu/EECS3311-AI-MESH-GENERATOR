@@ -44,6 +44,8 @@ class GeminiApiTest {
 	private String requestPath;
 	private String requestKey;
 	private String requestBody;
+	// When set, the fake server waits this long before answering.
+	private Duration answerAfter;
 
 	@BeforeEach
 	void startServer() throws Exception {
@@ -62,6 +64,13 @@ class GeminiApiTest {
 		requestKey = exchange.getRequestHeaders().getFirst("x-goog-api-key");
 		requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 		requestCount.incrementAndGet();
+		if (answerAfter != null) {
+			try {
+				Thread.sleep(answerAfter);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
 		Reply reply = replies.size() > 1 ? replies.poll() : replies.peek();
 		byte[] body = reply.body().getBytes(StandardCharsets.UTF_8);
 		exchange.sendResponseHeaders(reply.status(), body.length);
@@ -233,8 +242,34 @@ class GeminiApiTest {
 		assertTrue(error.getMessage().contains("HTTP 503"));
 		assertTrue(error.getMessage().contains("after 4 attempts"));
 		assertTrue(error.getMessage().contains("high demand"));
+		assertTrue(error.getMessage().contains("set GEMINI_MODEL in .env"));
 		assertEquals(GeminiApi.MAX_ATTEMPTS, requestCount.get());
 		assertEquals(List.of(Duration.ofSeconds(2), Duration.ofSeconds(4), Duration.ofSeconds(8)), sleeps);
+	}
+
+	@Test
+	void aModelThatNeverAnswersIsReportedAsBusyNotUnreachable() {
+		answerAfter = Duration.ofSeconds(3);
+		reply(200, OK_REPLY);
+		GeminiApi api = new GeminiApi(new GeminiProperties("real-key", "test-model", "test-image-model"),
+				"http://127.0.0.1:" + server.getAddress().getPort(), sleeps::add, Duration.ofMillis(300));
+
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> api.generateImage("Draw a chair", List.of()));
+
+		assertTrue(error.getMessage().contains("did not answer within"), error.getMessage());
+		assertTrue(error.getMessage().contains("test-image-model may be overloaded"), error.getMessage());
+		assertTrue(error.getMessage().contains("GEMINI_IMAGE_MODEL"), error.getMessage());
+	}
+
+	@Test
+	void anUnreachableServerIsReportedAsAConnectionProblem() {
+		server.stop(0);
+
+		java.io.UncheckedIOException error = assertThrows(java.io.UncheckedIOException.class,
+				() -> api("real-key").generateContent("Hi", List.of()));
+
+		assertTrue(error.getMessage().contains("Could not reach Gemini"), error.getMessage());
 	}
 
 	@Test

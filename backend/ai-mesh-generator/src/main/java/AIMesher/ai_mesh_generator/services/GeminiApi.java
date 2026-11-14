@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
+import java.net.http.HttpTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
@@ -40,6 +42,7 @@ public class GeminiApi {
 
 	static final int MAX_ATTEMPTS = 4;
 	static final Duration FIRST_RETRY_DELAY = Duration.ofSeconds(2);
+	static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(120);
 
 	// Errors Google marks as temporary: rate limited, internal error, overloaded, deadline exceeded.
 	// Anything else (bad request, bad key, unknown model) would fail the same way again.
@@ -53,6 +56,7 @@ public class GeminiApi {
 	private final GeminiProperties properties;
 	private final String baseUrl;
 	private final Sleeper sleeper;
+	private final Duration requestTimeout;
 	private final HttpClient http;
 	private final JsonMapper mapper = JsonMapper.builder().build();
 
@@ -63,9 +67,14 @@ public class GeminiApi {
 
 	// Tests point this at a local fake server.
 	GeminiApi(GeminiProperties properties, String baseUrl, Sleeper sleeper) {
+		this(properties, baseUrl, sleeper, REQUEST_TIMEOUT);
+	}
+
+	GeminiApi(GeminiProperties properties, String baseUrl, Sleeper sleeper, Duration requestTimeout) {
 		this.properties = properties;
 		this.baseUrl = baseUrl;
 		this.sleeper = sleeper;
+		this.requestTimeout = requestTimeout;
 		this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 	}
 
@@ -104,33 +113,50 @@ public class GeminiApi {
 		String apiKey = properties.requireApiKey();
 		// Built once, so the images are read and encoded once however many attempts it takes.
 		HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/models/" + model + ":generateContent"))
-				.timeout(Duration.ofSeconds(120))
+				.timeout(requestTimeout)
 				.header("Content-Type", "application/json")
 				.header("x-goog-api-key", apiKey)
 				.POST(HttpRequest.BodyPublishers.ofString(body))
 				.build();
 		Duration delay = FIRST_RETRY_DELAY;
 		for (int attempt = 1; attempt < MAX_ATTEMPTS; attempt++) {
-			HttpResponse<String> response = send(request);
+			HttpResponse<String> response = send(request, model);
 			// Decided on the status alone: an overloaded server may not send a JSON body.
 			if (!RETRYABLE_STATUSES.contains(response.statusCode())) {
-				return candidate(response, attempt);
+				return candidate(response, attempt, model);
 			}
 			pause(delay);
 			delay = delay.multipliedBy(2);
 		}
-		return candidate(send(request), MAX_ATTEMPTS);
+		return candidate(send(request, model), MAX_ATTEMPTS, model);
 	}
 
-	private HttpResponse<String> send(HttpRequest request) {
+	// A connection that can't be made means Gemini is unreachable. A connection that is made but gets no
+	// answer in time means the model is busy, which is reported separately with what to do about it.
+	private HttpResponse<String> send(HttpRequest request, String model) {
 		try {
 			return http.send(request, HttpResponse.BodyHandlers.ofString());
+		} catch (HttpConnectTimeoutException e) {
+			throw unreachable(e);
+		} catch (HttpTimeoutException e) {
+			throw new IllegalStateException("Gemini did not answer within " + requestTimeout.toSeconds() + " seconds."
+					+ busyHint(model), e);
 		} catch (IOException e) {
-			throw new UncheckedIOException("Could not reach Gemini: " + e.getMessage(), e);
+			throw unreachable(e);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException("Gemini request was interrupted.", e);
 		}
+	}
+
+	private static UncheckedIOException unreachable(IOException e) {
+		return new UncheckedIOException("Could not reach Gemini. Check the internet connection. (" + e.getMessage() + ")", e);
+	}
+
+	private String busyHint(String model) {
+		String setting = model.equals(properties.model()) ? "GEMINI_MODEL" : "GEMINI_IMAGE_MODEL";
+		return " The model " + model + " may be overloaded: try again in a few minutes, or set " + setting
+				+ " in .env to another model.";
 	}
 
 	private void pause(Duration delay) {
@@ -160,19 +186,21 @@ public class GeminiApi {
 		return mapper.writeValueAsString(body);
 	}
 
-	private JsonNode candidate(HttpResponse<String> response, int attempts) {
+	private JsonNode candidate(HttpResponse<String> response, int attempts, String model) {
 		String tries = attempts > 1 ? " after " + attempts + " attempts" : "";
+		int status = response.statusCode();
+		// 503 and 504 mean the model is overloaded or too slow, not that the request is wrong.
+		String hint = status == 503 || status == 504 ? busyHint(model) : "";
 		JsonNode root;
 		try {
 			root = mapper.readTree(response.body());
 		} catch (JacksonException e) {
-			throw new IllegalStateException("Gemini returned HTTP " + response.statusCode() + tries
-					+ " with an unreadable body.", e);
+			throw new IllegalStateException("Gemini returned HTTP " + status + tries + " with an unreadable body."
+					+ hint, e);
 		}
-		if (response.statusCode() != 200) {
+		if (status != 200) {
 			String message = root.path("error").path("message").asString("no error message");
-			throw new IllegalStateException("Gemini request failed (HTTP " + response.statusCode() + ")" + tries
-					+ ": " + message);
+			throw new IllegalStateException("Gemini request failed (HTTP " + status + ")" + tries + ": " + message + hint);
 		}
 		JsonNode candidate = root.path("candidates").path(0);
 		if (candidate.isMissingNode()) {
