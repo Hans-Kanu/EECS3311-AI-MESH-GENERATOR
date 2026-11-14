@@ -12,6 +12,7 @@ import AIMesher.ai_mesh_generator.agent.ProgressListener;
 import AIMesher.ai_mesh_generator.exporter.ExportFormat;
 import AIMesher.ai_mesh_generator.exporter.ExporterFactory;
 import AIMesher.ai_mesh_generator.model.GenerationRequest;
+import AIMesher.ai_mesh_generator.model.ImageOrigin;
 import AIMesher.ai_mesh_generator.model.ModelVersion;
 import AIMesher.ai_mesh_generator.model.Project;
 import AIMesher.ai_mesh_generator.model.ReferenceImage;
@@ -48,7 +49,8 @@ public class AppController {
 	}
 
 	// Runs the agent on the user's images and/or description (F02-F04, F06, F07) and makes the result the open
-	// project's reference set. Every image is copied into the project, so it stays after temp files are cleaned up.
+	// project's reference set. Every image is copied into the project. The agent's own temp files (generated views,
+	// downloaded web photos) are deleted once copied; the user's uploaded files are never touched.
 	public ReferenceImageSet generateReferences(List<File> images, String description) {
 		Project project = getCurrentProject();
 		ReferenceImageSet generated = agent.startGeneration(new GenerationRequest(images, description));
@@ -56,6 +58,9 @@ public class AppController {
 		for (ReferenceImage image : generated.getImages()) {
 			File copy = repository.importFile(project, image.getFile(), "images");
 			stored.add(new ReferenceImage(copy, image.getAngle(), image.getOrigin(), image.getSourceUrl()));
+			if (image.getOrigin() != ImageOrigin.UPLOADED) {
+				image.getFile().delete();
+			}
 		}
 		project.setReferenceSet(stored);
 		repository.save(project);
@@ -84,7 +89,10 @@ public class AppController {
 	public ModelVersion buildModel() {
 		Project project = getCurrentProject();
 		File model = agent.buildMesh(project.getReferenceSet());
-		ModelVersion version = project.addVersion(repository.importFile(project, model, "models"));
+		File stored = repository.importFile(project, model, "models");
+		// The downloaded model is a temp file; the project's copy is the one that is kept.
+		model.delete();
+		ModelVersion version = project.addVersion(stored);
 		repository.save(project);
 		return version;
 	}

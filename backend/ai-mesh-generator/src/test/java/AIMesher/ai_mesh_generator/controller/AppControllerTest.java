@@ -211,6 +211,10 @@ class AppControllerTest {
 		assertEquals(List.of(ImageOrigin.UPLOADED, ImageOrigin.AI_GENERATED, ImageOrigin.AI_GENERATED,
 				ImageOrigin.AI_GENERATED, ImageOrigin.AI_GENERATED),
 				reloaded.getReferenceSet().getImages().stream().map(ReferenceImage::getOrigin).toList());
+		// The generated views' temp files are gone; the user's own photo is left alone.
+		try (var left = Files.list(models)) {
+			assertEquals(List.of("photo.png"), left.map(path -> path.getFileName().toString()).toList());
+		}
 	}
 
 	@Test
@@ -230,6 +234,9 @@ class AppControllerTest {
 				.startsWith(root.resolve("Stool").resolve("models").toAbsolutePath()));
 		assertEquals(4, version.getReferenceSnapshot().getImages().size());
 		assertEquals(1, new ProjectRepository(root).load("Stool").getCurrentVersion());
+		assertTrue(version.getModelFile().isFile());
+		// The downloaded temp model is deleted once the project has its copy.
+		assertTrue(Files.notExists(models.resolve("model.glb")));
 	}
 
 	@Test
