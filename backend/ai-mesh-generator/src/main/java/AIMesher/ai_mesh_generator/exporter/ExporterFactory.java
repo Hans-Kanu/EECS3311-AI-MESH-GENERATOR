@@ -12,6 +12,7 @@ public class ExporterFactory {
 
 	public ModelExporter create(ExportFormat format) {
 		return switch (format) {
+			case GLB -> new GlbExporter();
 			case OBJ -> new ObjExporter(reader);
 			case STL -> new StlExporter(reader);
 		};

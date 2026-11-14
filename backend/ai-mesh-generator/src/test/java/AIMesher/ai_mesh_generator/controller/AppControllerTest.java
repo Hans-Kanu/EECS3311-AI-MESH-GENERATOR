@@ -1,5 +1,6 @@
 package AIMesher.ai_mesh_generator.controller;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -163,6 +164,17 @@ class AppControllerTest {
 
 		assertTrue(Files.readString(obj).contains("f 1/1/1 2/2/2 3/3/3"));
 		assertEquals(84 + 50, Files.size(stl));
+	}
+
+	@Test
+	void glbExportIsAnExactCopyOfTheModel() throws Exception {
+		chairWithVersions(1);
+		Path glb = models.resolve("chair-copy.glb");
+		File model = controller.getCurrentProject().getVersion(1).getModelFile();
+
+		controller.exportVersion(1, ExportFormat.GLB, glb);
+
+		assertArrayEquals(Files.readAllBytes(model.toPath()), Files.readAllBytes(glb));
 	}
 
 	@Test

@@ -11,12 +11,14 @@ class ExporterFactoryTest {
 
 	@Test
 	void createsTheExporterForEachFormat() {
+		assertInstanceOf(GlbExporter.class, factory.create(ExportFormat.GLB));
 		assertInstanceOf(ObjExporter.class, factory.create(ExportFormat.OBJ));
 		assertInstanceOf(StlExporter.class, factory.create(ExportFormat.STL));
 	}
 
 	@Test
 	void formatsKnowTheirFileExtension() {
+		assertEquals("glb", ExportFormat.GLB.extension());
 		assertEquals("obj", ExportFormat.OBJ.extension());
 		assertEquals("stl", ExportFormat.STL.extension());
 	}

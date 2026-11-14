@@ -42,7 +42,7 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 	private static final DateTimeFormatter VERSION_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 	private static final String RESTORE_USAGE = "versions restore <number>";
 	private static final String DELETE_USAGE = "versions delete <number>";
-	private static final String EXPORT_USAGE = "export <number> --format obj|stl --out <file>";
+	private static final String EXPORT_USAGE = "export <number> --format glb|obj|stl --out <file>";
 	private static final String GENERATE_USAGE = "generate [--image <file>]... [--describe \"<text>\"]";
 	private static final String EXCLUDE_USAGE = "images exclude <number>";
 	private static final String INCLUDE_USAGE = "images include <number>";
@@ -292,7 +292,7 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 		}
 	}
 
-	// export <number> --format obj|stl --out <file>, with the two options in either order.
+	// export <number> --format glb|obj|stl --out <file>, with the two options in either order.
 	private void export(List<String> args) {
 		if (args.size() != 5) {
 			throw new IllegalArgumentException("Usage: " + EXPORT_USAGE);
@@ -318,8 +318,8 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 			out.println("Not exported.");
 			return;
 		}
-		if (exportFormat == ExportFormat.STL) {
-			out.println("Note: STL files don't store colours or textures.");
+		if (exportFormat != ExportFormat.GLB) {
+			out.println("Note: " + exportFormat + " files don't keep the model's colours and textures; use glb for those.");
 		}
 		controller.exportVersion(number, exportFormat, path);
 		out.println("Exported version " + number + " to " + path + ".");
@@ -329,7 +329,7 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 		try {
 			return ExportFormat.valueOf(format.toUpperCase(Locale.ROOT));
 		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("Unknown format \"" + format + "\". Use obj or stl.");
+			throw new IllegalArgumentException("Unknown format \"" + format + "\". Use glb, obj or stl.");
 		}
 	}
 
@@ -368,8 +368,8 @@ public class CliApp implements CommandLineRunner, ProgressListener {
 				  versions list                           List the open project's model versions
 				  versions restore <number>               Make a version the current one
 				  versions delete <number>                Delete a version (asks first)
-				  export <number> --format obj|stl --out <file>
-				                                          Export a version to an OBJ or STL file
+				  export <number> --format glb|obj|stl --out <file>
+				                                          Export a version to a GLB, OBJ or STL file
 				  generate [--image <file>]... [--describe "<text>"]
 				                                          Identify the object, collect photos and generate
 				                                          the front, left, right and back views

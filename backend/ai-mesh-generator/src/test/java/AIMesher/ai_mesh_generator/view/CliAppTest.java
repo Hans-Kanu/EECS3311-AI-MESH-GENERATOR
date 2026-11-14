@@ -217,7 +217,7 @@ class CliAppTest {
 
 		String printed = run("export 1 --format stl --out " + quoted(models.resolve("chair.stl")));
 
-		assertTrue(printed.contains("STL files don't store colours or textures"));
+		assertTrue(printed.contains("STL files don't keep the model's colours and textures; use glb for those."));
 		assertTrue(Files.isRegularFile(models.resolve("chair.stl")));
 	}
 
@@ -227,8 +227,8 @@ class CliAppTest {
 
 		String printed = run("export 1 --format fbx --out chair", "export 1 --format obj");
 
-		assertTrue(printed.contains("Unknown format \"fbx\". Use obj or stl."));
-		assertTrue(printed.contains("Usage: export <number> --format obj|stl --out <file>"));
+		assertTrue(printed.contains("Unknown format \"fbx\". Use glb, obj or stl."));
+		assertTrue(printed.contains("Usage: export <number> --format glb|obj|stl --out <file>"));
 	}
 
 	@Test
