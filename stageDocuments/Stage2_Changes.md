@@ -180,16 +180,34 @@ Structure: **Original design -> Implemented change -> Reason -> Impact.**
 | (none) | New: `GuiApp` (starts JavaFX after Spring builds the controller), `Dialogs` (shared pop-ups), `PreviewMesh` | GUI start-up and preview | Presentation layer |
 | (none) | New: `GeminiProperties`, `HunyuanProperties`, `GlbReader`, `GlbModel` | Config from `.env`; one GLB parser for export and preview | Services and export layers |
 
-## 5. Diagrams to update for the Stage 2 report
+## 5. Diagram updates
+
+The UMLet sources in `stageDocuments/diagrams/` now match the code:
 
 - **Class diagram:** every row in Section 4.
-- **Use cases:** UC03 (no confirm step), UC04 (search by picture only), UC05 (no Accept / Regenerate), UC06 (always four
-  views), UC11 (`loadModel(version)`).
+  - `IdentificationPanel` was removed and `GuiApp` takes its place.
+  - Added `PreviewMesh`, `GlbReader`, `GlbModel` and the three `*Properties` records.
+  - `ImageAndDescriptionPath` now extends `ImageOnlyPath`.
+  - The strategies no longer depend on `ModelAgent`.
+  - `TOP` was removed from `Angle`.
+- **Use case diagram:** the search actor is now Google Cloud Vision, and UC06 is renamed "Generate the Four Views".
+  The use case descriptions still need these changes in the report:
+  - UC03: no confirm step.
+  - UC04: search by picture only.
+  - UC05: no Accept / Regenerate.
+  - UC06: always four views.
+  - UC07: only generated views can be excluded.
+  - UC11: `loadModel(version)`.
 - **Sequence diagrams:**
-  - SD01: identification without confirmation; search by picture through Cloud Vision; four generated views.
-  - SD02: no `acceptGeneratedImage()`.
-  - SD03: `buildModel()` returns the version and the view previews it.
-  - SD06: `loadModel(version)`.
+  - SD01: identification without confirmation, search by picture through Cloud Vision, four generated views, and the
+    images copied into the project.
+  - SD02: no `acceptGeneratedImage()`. The front view comes from `writeImagePrompt()` and `generateFromPrompt()`.
+  - SD03: `meshViews()` checks for a generated front view, and polling uses `queryProJob()`. `buildModel()` returns the
+    version, which `HistoryPanel` selects and previews.
+  - SD04: errors go back to `MainWindow` as exceptions, and the exporter reads the GLB with `GlbReader`.
+  - SD06: excluding is refused for a photo or the last generated front view. Restoring uses `restoreVersion()`, which
+    returns the version, and `loadModel(version)` uses `GlbReader` and `PreviewMesh`.
+  - SD05 is unchanged.
 
 ## 6. Weekly commit summary
 
@@ -207,4 +225,7 @@ clearer Gemini errors; [da0fdf0](https://github.com/Hans-Kanu/EECS3311-AI-MESH-G
 saves and damaged-file errors; [b81d0ad](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/b81d0ad)
 network-drop retries; [f4084c5](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f4084c5) GLB export;
 [f8c5015](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f8c5015) temp file cleanup;
-[5fd189c](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/5fd189c) JavaFX GUI and 3D preview.
+[5fd189c](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/5fd189c) JavaFX GUI and 3D preview;
+[f8b8428](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f8b8428) only generated views can be
+excluded; [ac050d9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/ac050d9) reverse image search
+through Cloud Vision.

@@ -1,45 +1,48 @@
-<diagram program="umletino" version="15.1"><zoom_level>10</zoom_level><element><id>UMLClass</id><coordinates><x>340</x><y>0</y><w>290</w><h>110</h></coordinates><panel_attributes>«view»
+<diagram program="umletino" version="15.1"><zoom_level>10</zoom_level><element><id>UMLClass</id><coordinates><x>200</x><y>0</y><w>440</w><h>110</h></coordinates><panel_attributes>«view»
 ProjectPanel
 --
 --
-+refreshProjects(names : List&lt;String&gt;)
-+confirmDelete(name : String) : boolean
+~refreshProjects(names : List&lt;String&gt;, openProject : String)
+~confirmDelete(name : String) : boolean
 bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>660</x><y>0</y><w>250</w><h>110</h></coordinates><panel_attributes>«view»
 InputPanel
 --
 --
-+getRequest() : GenerationRequest
-+showPath(message : String)
+~getImages() : List&lt;File&gt;
+~getDescription() : String
 bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>940</x><y>0</y><w>290</w><h>110</h></coordinates><panel_attributes>«view»
-IdentificationPanel
+GuiApp
 --
+-controller : AppController
 --
-+showIdentification(id : Identification)
-+getConfirmed() : Identification
-bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1260</x><y>0</y><w>280</w><h>110</h></coordinates><panel_attributes>«view»
++run(args : String...)
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1260</x><y>0</y><w>340</w><h>120</h></coordinates><panel_attributes>«view»
 SourcesPanel
 --
+-onIncludeToggled : BiConsumer&lt;String, Boolean&gt;
 --
-+showSources(set : ReferenceImageSet)
-+onExcludeToggled(imageId : String)
-bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1570</x><y>0</y><w>320</w><h>90</h></coordinates><panel_attributes>«view»
+~showSources(set : ReferenceImageSet)
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1610</x><y>0</y><w>590</w><h>90</h></coordinates><panel_attributes>«view»
 HistoryPanel
 --
 --
-+showVersions(versions : List&lt;ModelVersion&gt;)
-bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1920</x><y>0</y><w>270</w><h>120</h></coordinates><panel_attributes>«view»
+~showVersions(versions : List&lt;ModelVersion&gt;, current : int, select : ModelVersion)
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2230</x><y>0</y><w>390</w><h>170</h></coordinates><panel_attributes>«view»
 ModelViewerPanel
 --
+-reader : GlbReader
 --
-+loadModel(modelFile : File)
-+resetView()
-+showDetails(version : ModelVersion)
-bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>780</x><y>200</y><w>320</w><h>150</h></coordinates><panel_attributes>«view»
+~loadModel(version : ModelVersion)
+~showDetails(version : ModelVersion, problem : String)
+~clear(text : String)
+~resetView()
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>760</x><y>200</y><w>490</w><h>170</h></coordinates><panel_attributes>«view»
 MainWindow
 --
 -controller : AppController
 --
-+MainWindow(controller : AppController)
++MainWindow(controller : AppController, stage : javafx.stage.Stage)
++show()
 +onProgress(stage : Stage, message : String)
 +onError(stage : Stage, error : String)
 +showError(message : String)
@@ -49,16 +52,16 @@ bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></el
 --
 +onProgress(stage : Stage, message : String)
 +onError(stage : Stage, error : String)
-bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1720</x><y>200</y><w>320</w><h>150</h></coordinates><panel_attributes>«boundary»
+bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1720</x><y>200</y><w>320</w><h>150</h></coordinates><panel_attributes>«view»
 CliApp
 --
 -controller : AppController
 --
-+run(args : String[])
++run(args : String...)
 -parseCommand(line : String)
 +onProgress(stage : Stage, message : String)
 +onError(stage : Stage, error : String)
-bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>720</x><y>460</y><w>460</w><h>360</h></coordinates><panel_attributes>«controller»
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>720</x><y>460</y><w>590</w><h>390</h></coordinates><panel_attributes>«controller»
 AppController
 --
 -currentProject : Project
@@ -67,18 +70,18 @@ AppController
 -exporterFactory : ExporterFactory
 --
 +addProgressListener(l : ProgressListener)
++removeProgressListener(l : ProgressListener)
 +listProjects() : List&lt;String&gt;
 +createProject(name : String)
 +openProject(name : String) : Project
++getCurrentProject() : Project
 +renameProject(oldName : String, newName : String)
 +deleteProject(name : String)
-+submitRequest(request : GenerationRequest)
-+confirmIdentification(id : Identification)
-+acceptGeneratedImage()
-+regenerateImage(extraDetail : String)
++generateReferences(images : List&lt;File&gt;, description : String) : ReferenceImageSet
 +excludeImage(imageId : String)
-+buildModel()
-+restoreVersion(number : int)
++includeImage(imageId : String)
++buildModel() : ModelVersion
++restoreVersion(number : int) : ModelVersion
 +deleteVersion(number : int)
 +exportVersion(number : int, format : ExportFormat, path : Path)
 bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>460</y><w>110</w><h>110</h></coordinates><panel_attributes>«enumeration»
@@ -87,7 +90,7 @@ ExportFormat
 OBJ
 STL
 GLB
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>290</x><y>460</y><w>320</w><h>170</h></coordinates><panel_attributes>ProjectRepository
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>115</x><y>460</y><w>485</w><h>190</h></coordinates><panel_attributes>ProjectRepository
 --
 -rootDir : Path
 --
@@ -95,6 +98,7 @@ bg=#ececec</panel_attributes><additional_attributes></additional_attributes></el
 +load(name : String) : Project
 +listNames() : List&lt;String&gt;
 +exists(name : String) : boolean
++importFile(project : Project, source : File, folder : String) : File
 +rename(oldName : String, newName : String)
 +delete(name : String)
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>290</x><y>700</y><w>340</w><h>90</h></coordinates><panel_attributes>«factory»
@@ -109,44 +113,51 @@ bg=#ececec</panel_attributes><additional_attributes></additional_attributes></el
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>220</x><y>990</y><w>110</w><h>30</h></coordinates><panel_attributes>GlbExporter
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>360</x><y>990</y><w>110</w><h>30</h></coordinates><panel_attributes>ObjExporter
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>500</x><y>990</y><w>110</w><h>30</h></coordinates><panel_attributes>StlExporter
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1460</x><y>460</y><w>330</w><h>200</h></coordinates><panel_attributes>Project
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1460</x><y>460</y><w>330</w><h>240</h></coordinates><panel_attributes>Project
 --
 -name : String
 -createdAt : LocalDateTime
 -currentVersion : int
 --
 +getReferenceSet() : ReferenceImageSet
++setReferenceSet(set : ReferenceImageSet)
 +getVersions() : List&lt;ModelVersion&gt;
 +addVersion(modelFile : File) : ModelVersion
++addSavedVersion(version : ModelVersion)
 +getVersion(number : int) : ModelVersion
 +removeVersion(number : int)
-+setCurrentVersion(number : int)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1900</x><y>460</y><w>280</w><h>150</h></coordinates><panel_attributes>ReferenceImageSet
++setCurrentVersion(number : int)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1900</x><y>460</y><w>280</w><h>190</h></coordinates><panel_attributes>ReferenceImageSet
 --
 --
 +add(image : ReferenceImage)
 +exclude(imageId : String)
++include(imageId : String)
++getImages() : List&lt;ReferenceImage&gt;
 +getIncluded() : List&lt;ReferenceImage&gt;
 +hasFrontView() : boolean
 +missingAngles() : List&lt;Angle&gt;
-+copy() : ReferenceImageSet</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2290</x><y>460</y><w>170</w><h>140</h></coordinates><panel_attributes>ReferenceImage
++copy() : ReferenceImageSet</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2290</x><y>460</y><w>170</w><h>160</h></coordinates><panel_attributes>ReferenceImage
 --
 -id : String
 -file : File
 -angle : Angle
 -origin : ImageOrigin
 -sourceUrl : String
--excluded : boolean</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1900</x><y>760</y><w>210</w><h>90</h></coordinates><panel_attributes>ModelVersion
+-excluded : boolean
+--
+~copy() : ReferenceImage</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1900</x><y>760</y><w>210</w><h>120</h></coordinates><panel_attributes>ModelVersion
 --
 -number : int
 -createdAt : LocalDateTime
--modelFile : File</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2230</x><y>740</y><w>110</w><h>140</h></coordinates><panel_attributes>«enumeration»
+-modelFile : File
+--
++isAvailable() : boolean</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2230</x><y>740</y><w>110</w><h>120</h></coordinates><panel_attributes>«enumeration»
 Angle
 --
 FRONT
 BACK
 LEFT
-RIGHT
-TOP</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2380</x><y>740</y><w>130</w><h>110</h></coordinates><panel_attributes>«enumeration»
+RIGHT</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>2380</x><y>740</y><w>130</w><h>110</h></coordinates><panel_attributes>«enumeration»
 ImageOrigin
 --
 UPLOADED
@@ -172,29 +183,36 @@ ModelAgent
 -path : GenerationPath
 -vision : VisionModel
 -search : ImageSearch
--imageGen : ImageGenerator
--meshGen : MeshGenerator
--maxRetries : int = 3
+-generator : ImageGenerator
+-mesh : MeshGenerator
+_-MAX_NETWORK_ATTEMPTS : int = 3_
 --
 +addListener(l : ProgressListener)
 +removeListener(l : ProgressListener)
-+startGeneration(request : GenerationRequest, set : ReferenceImageSet)
-+identifyObject(request : GenerationRequest) : Identification
-+collectReferences(id : Identification, set : ReferenceImageSet)
-+generateFromDescription(description : String) : ReferenceImage
-+fillMissingAngles(set : ReferenceImageSet, context : String)
++startGeneration(request : GenerationRequest) : ReferenceImageSet
 +buildMesh(set : ReferenceImageSet) : File
--choosePath(request : GenerationRequest) : GenerationPath
+~choosePath(request : GenerationRequest) : GenerationPath
+_~meshViews(set : ReferenceImageSet) : Map&lt;Angle, File&gt;_
+-waitFor(jobId : String)
 -notifyProgress(stage : Stage, message : String)
 -notifyError(stage : Stage, error : String)
-bg=#fff2cc</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>1130</y><w>550</w><h>110</h></coordinates><panel_attributes>«strategy»
+bg=#fff2cc</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>1060</y><w>640</w><h>150</h></coordinates><panel_attributes>«strategy»
 /GenerationPath/
 --
-/+run(agent : ModelAgent, request : GenerationRequest, set : ReferenceImageSet)/
-#fillAndReview(agent : ModelAgent, set : ReferenceImageSet)
-bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>1300</y><w>120</w><h>30</h></coordinates><panel_attributes>ImageOnlyPath
-bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>170</x><y>1300</y><w>160</w><h>30</h></coordinates><panel_attributes>DescriptionOnlyPath
-bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>370</x><y>1300</y><w>190</w><h>30</h></coordinates><panel_attributes>ImageAndDescriptionPath
+#vision : VisionModel
+#generator : ImageGenerator
+_~MAX_VIEW_ATTEMPTS : int = 2_
+--
+/+run(request : GenerationRequest, progress : ProgressListener) : ReferenceImageSet/
+#generateViews(set, refs, subject, frontPrompt, progress)
+bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>1250</y><w>480</w><h>110</h></coordinates><panel_attributes>ImageOnlyPath
+--
+-search : ImageSearch
+--
+#hint(request : GenerationRequest) : String
+#subject(id : Identification, request : GenerationRequest) : String
+bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>500</x><y>1250</y><w>170</w><h>30</h></coordinates><panel_attributes>DescriptionOnlyPath
+bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>1400</y><w>200</w><h>30</h></coordinates><panel_attributes>ImageAndDescriptionPath
 bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1260</x><y>1150</y><w>170</w><h>150</h></coordinates><panel_attributes>«enumeration»
 Stage
 --
@@ -212,95 +230,100 @@ bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></el
 +labelAngle(image : File) : Angle
 +isConsistent(view : File, refs : List&lt;File&gt;) : boolean
 +writeImagePrompt(description : String) : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>110</x><y>1680</y><w>160</w><h>90</h></coordinates><panel_attributes>«adapter»
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>110</x><y>1680</y><w>160</w><h>80</h></coordinates><panel_attributes>«adapter»
 GeminiVisionAdapter
 --
 -client : GeminiApi
--modelName : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>520</x><y>1460</y><w>400</w><h>90</h></coordinates><panel_attributes>«interface»
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>500</x><y>1460</y><w>525</w><h>90</h></coordinates><panel_attributes>«interface»
 /ImageGenerator/
 --
 +generateFromPrompt(prompt : String) : File
-+generateAngle(refs : List&lt;File&gt;, angle : Angle) : File
++generateAngle(refs : List&lt;File&gt;, subject : String, angle : Angle) : File
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>580</x><y>1680</y><w>160</w><h>90</h></coordinates><panel_attributes>«adapter»
 GeminiImageAdapter
 --
 -client : GeminiApi
--modelName : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>950</x><y>1460</y><w>450</w><h>80</h></coordinates><panel_attributes>«interface»
+-outputDir : Path
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1030</x><y>1460</y><w>450</w><h>80</h></coordinates><panel_attributes>«interface»
 /ImageSearch/
 --
 +search(image : File, id : Identification) : List&lt;SearchResult&gt;
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>950</x><y>1680</y><w>220</w><h>80</h></coordinates><panel_attributes>«adapter»
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1030</x><y>1680</y><w>220</w><h>80</h></coordinates><panel_attributes>«adapter»
 ReverseImageSearchAdapter
 --
 -api : ReverseImageSearchApi
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1250</x><y>1680</y><w>160</w><h>110</h></coordinates><panel_attributes>SearchResult
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1330</x><y>1680</y><w>160</w><h>110</h></coordinates><panel_attributes>SearchResult
 --
 -imageUrl : String
 -sourceUrl : String
 --
 +download() : File
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1440</x><y>1460</y><w>330</w><h>110</h></coordinates><panel_attributes>«interface»
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1520</x><y>1460</y><w>330</w><h>110</h></coordinates><panel_attributes>«interface»
 /MeshGenerator/
 --
 +submitJob(views : Map&lt;Angle, File&gt;) : String
 +getStatus(jobId : String) : JobStatus
 +download(jobId : String) : File
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1440</x><y>1680</y><w>260</w><h>110</h></coordinates><panel_attributes>«adapter»
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1520</x><y>1680</y><w>260</w><h>110</h></coordinates><panel_attributes>«adapter»
 Hunyuan3DAdapter
 --
 -api : Hunyuan3DApi
 --
--prepareImage(image : File) : File
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>290</x><y>1860</y><w>450</w><h>90</h></coordinates><panel_attributes>«external»
+_~base64Jpeg(image : File) : String_
+_~extractGlb(zip : Path) : Path_
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>290</x><y>1860</y><w>500</w><h>140</h></coordinates><panel_attributes>«external»
 GeminiApi
 --
+-properties : GeminiProperties
 --
 +generateContent(prompt : String, images : List&lt;File&gt;) : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>950</x><y>1860</y><w>280</w><h>90</h></coordinates><panel_attributes>«external»
++generateJson(prompt : String, images : List&lt;File&gt;) : String
++generateImage(prompt : String, images : List&lt;File&gt;) : GeneratedImage
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1030</x><y>1860</y><w>300</w><h>120</h></coordinates><panel_attributes>«external»
 ReverseImageSearchApi
 --
+-properties : VisionProperties
 --
-+searchByImage(image : File) : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1440</x><y>1860</y><w>350</w><h>110</h></coordinates><panel_attributes>«external»
++searchByImage(image : File) : JsonNode
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1520</x><y>1860</y><w>350</w><h>140</h></coordinates><panel_attributes>«external»
 Hunyuan3DApi
 --
+-properties : HunyuanProperties
 --
-+createJob(images : Map&lt;String, File&gt;) : String
-+queryJob(jobId : String) : String
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1710</x><y>1680</y><w>110</w><h>120</h></coordinates><panel_attributes>«enumeration»
++submitProJob(params : ObjectNode) : String
++queryProJob(jobId : String) : JsonNode
++download(url : String, target : Path)
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1790</x><y>1680</y><w>110</w><h>120</h></coordinates><panel_attributes>«enumeration»
 JobStatus
 --
 QUEUED
 RUNNING
 DONE
 FAILED
-bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLNote</id><coordinates><x>1940</x><y>1460</y><w>400</w><h>130</h></coordinates><panel_attributes>Legend (background colour = layer)
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLNote</id><coordinates><x>2020</x><y>1460</y><w>400</w><h>130</h></coordinates><panel_attributes>Legend (background colour = layer)
 blue: presentation (GUI views, CLI, controller)
 yellow: agent facade
 green: AI agent internals
 white: domain model
 grey: AI services, external APIs, persistence, export</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>475</x><y>100</y><w>360</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m2=1</panel_attributes><additional_attributes>337;100;337;50;10;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>775</x><y>100</y><w>110</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-m2=1</panel_attributes><additional_attributes>88;100;88;50;10;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>904</x><y>100</y><w>210</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-m2=1</panel_attributes><additional_attributes>10;100;10;50;181;50;181;10</additional_attributes></element><element><id>Relation</id><coordinates><x>955</x><y>100</y><w>470</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-m2=1</panel_attributes><additional_attributes>10;100;10;50;444;50;444;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1006</x><y>80</y><w>750</w><h>140</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-m2=1</panel_attributes><additional_attributes>10;120;10;70;723;70;723;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1058</x><y>110</y><w>1020</w><h>110</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
-m2=1</panel_attributes><additional_attributes>10;90;10;40;997;40;997;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1090</x><y>255</y><w>200</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>180;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1580</x><y>255</y><w>160</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;140;10</additional_attributes></element><element><id>Relation</id><coordinates><x>894</x><y>340</y><w>70</w><h>140</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>46;10;46;40;10;40;10;120</additional_attributes></element><element><id>Relation</id><coordinates><x>1078</x><y>340</y><w>830</w><h>140</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>802;10;802;55;10;55;10;120</additional_attributes></element><element><id>Relation</id><coordinates><x>600</x><y>535</y><w>140</w><h>40</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>120;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>620</x><y>735</y><w>120</w><h>40</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>100;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1170</x><y>474</y><w>310</w><h>50</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>88;100;88;50;10;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>904</x><y>100</y><w>210</w><h>120</h></coordinates><panel_attributes>lt=.&gt;
+«create»</panel_attributes><additional_attributes>181;10;181;50;10;50;10;100</additional_attributes></element><element><id>Relation</id><coordinates><x>955</x><y>100</y><w>470</w><h>120</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=1</panel_attributes><additional_attributes>10;100;10;50;444;50;444;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1006</x><y>80</y><w>750</w><h>140</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=1</panel_attributes><additional_attributes>10;120;10;70;723;70;723;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1058</x><y>160</y><w>1380</w><h>60</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=1</panel_attributes><additional_attributes>10;40;10;25;1357;25;1357;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1240</x><y>255</y><w>50</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>30;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1580</x><y>255</y><w>160</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;140;10</additional_attributes></element><element><id>Relation</id><coordinates><x>894</x><y>360</y><w>70</w><h>120</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>46;10;46;30;10;30;10;100</additional_attributes></element><element><id>Relation</id><coordinates><x>1078</x><y>340</y><w>830</w><h>140</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>802;10;802;55;10;55;10;120</additional_attributes></element><element><id>Relation</id><coordinates><x>590</x><y>535</y><w>150</w><h>40</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>130;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>620</x><y>735</y><w>120</w><h>40</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>100;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1300</x><y>520</y><w>180</w><h>50</h></coordinates><panel_attributes>lt=-&gt;
 m2=0..1
-currentProject</panel_attributes><additional_attributes>10;29;150;29;150;10;290;10</additional_attributes></element><element><id>Relation</id><coordinates><x>940</x><y>810</y><w>40</w><h>110</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>10;10;10;90</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>310</y><w>280</w><h>630</h></coordinates><panel_attributes>lt=-&gt;
+currentProject</panel_attributes><additional_attributes>10;10;160;10</additional_attributes></element><element><id>Relation</id><coordinates><x>940</x><y>840</y><w>40</w><h>80</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;60</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>310</y><w>280</w><h>630</h></coordinates><panel_attributes>lt=-&gt;
 m1=1
 m2=0..*
-listeners</panel_attributes><additional_attributes>10;600;210;600;210;10</additional_attributes></element><element><id>Relation</id><coordinates><x>540</x><y>1107</y><w>180</w><h>80</h></coordinates><panel_attributes>lt=-&gt;
+listeners</panel_attributes><additional_attributes>10;600;210;600;210;10</additional_attributes></element><element><id>Relation</id><coordinates><x>630</x><y>1100</y><w>90</w><h>50</h></coordinates><panel_attributes>lt=-&gt;
 m2=1
-path</panel_attributes><additional_attributes>160;10;85;10;85;50;10;50</additional_attributes></element><element><id>Relation</id><coordinates><x>540</x><y>1156</y><w>180</w><h>70</h></coordinates><panel_attributes>lt=.&gt;
-«use»</panel_attributes><additional_attributes>10;46;85;46;85;10;160;10</additional_attributes></element><element><id>Relation</id><coordinates><x>50</x><y>1230</y><w>250</w><h>90</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>225;10;225;45;10;45;10;70</additional_attributes></element><element><id>Relation</id><coordinates><x>240</x><y>1230</y><w>60</w><h>90</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>35;10;35;45;10;45;10;70</additional_attributes></element><element><id>Relation</id><coordinates><x>265</x><y>1230</y><w>220</w><h>90</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;45;200;45;200;70</additional_attributes></element><element><id>Relation</id><coordinates><x>440</x><y>410</y><w>1210</w><h>70</h></coordinates><panel_attributes>lt=.&gt;
+path</panel_attributes><additional_attributes>70;20;10;20</additional_attributes></element><element><id>Relation</id><coordinates><x>80</x><y>1200</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>Relation</id><coordinates><x>575</x><y>1200</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>Relation</id><coordinates><x>80</x><y>1350</y><w>30</w><h>70</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>Relation</id><coordinates><x>440</x><y>410</y><w>1210</w><h>70</h></coordinates><panel_attributes>lt=.&gt;
 «persist»</panel_attributes><additional_attributes>10;50;10;20;1185;20;1185;50</additional_attributes></element><element><id>Relation</id><coordinates><x>45</x><y>560</y><w>270</w><h>210</h></coordinates><panel_attributes>lt=.&gt;</panel_attributes><additional_attributes>245;185;10;185;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>780</y><w>80</w><h>80</h></coordinates><panel_attributes>lt=.&gt;
 «create»</panel_attributes><additional_attributes>10;10;10;60</additional_attributes></element><element><id>Relation</id><coordinates><x>265</x><y>910</y><w>190</w><h>100</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>165;10;165;55;10;55;10;80</additional_attributes></element><element><id>Relation</id><coordinates><x>405</x><y>910</y><w>50</w><h>100</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>25;10;25;55;10;55;10;80</additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>910</y><w>160</w><h>100</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;55;135;55;135;80</additional_attributes></element><element><id>Relation</id><coordinates><x>1780</x><y>515</y><w>140</w><h>50</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=0..1
@@ -311,26 +334,76 @@ m2=0..*
 images</panel_attributes><additional_attributes>10;20;120;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1780</x><y>620</y><w>140</w><h>210</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=1
 m2=0..*
-versions</panel_attributes><additional_attributes>10;10;65;10;65;185;120;185</additional_attributes></element><element><id>Relation</id><coordinates><x>1965</x><y>600</y><w>130</w><h>180</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+versions</panel_attributes><additional_attributes>10;10;65;10;65;185;120;185</additional_attributes></element><element><id>Relation</id><coordinates><x>1965</x><y>640</y><w>130</w><h>140</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=0..1
 m2=1
-referenceSnapshot</panel_attributes><additional_attributes>40;160;40;85;75;85;75;10</additional_attributes></element><element><id>Relation</id><coordinates><x>2305</x><y>590</y><w>40</w><h>170</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>10;10;10;150</additional_attributes></element><element><id>Relation</id><coordinates><x>2410</x><y>590</y><w>40</w><h>170</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>10;10;10;150</additional_attributes></element><element><id>Relation</id><coordinates><x>357</x><y>1240</y><w>440</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
+referenceSnapshot</panel_attributes><additional_attributes>40;120;40;65;75;65;75;10</additional_attributes></element><element><id>Relation</id><coordinates><x>2305</x><y>610</y><w>40</w><h>150</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>2410</x><y>610</y><w>40</w><h>150</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>357</x><y>1240</y><w>440</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
 m2=1</panel_attributes><additional_attributes>418;10;418;160;10;160;10;220</additional_attributes></element><element><id>Relation</id><coordinates><x>750</x><y>1240</y><w>160</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>140;10;140;180;10;180;10;220</additional_attributes></element><element><id>Relation</id><coordinates><x>1000</x><y>1240</y><w>250</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>10;10;10;180;220;180;220;220</additional_attributes></element><element><id>Relation</id><coordinates><x>1115</x><y>1240</y><w>550</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
-m2=1</panel_attributes><additional_attributes>10;10;10;160;523;160;523;220</additional_attributes></element><element><id>Relation</id><coordinates><x>180</x><y>1590</y><w>30</w><h>110</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;90</additional_attributes></element><element><id>Relation</id><coordinates><x>1050</x><y>1530</y><w>30</w><h>170</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;150</additional_attributes></element><element><id>Relation</id><coordinates><x>650</x><y>1540</y><w>30</w><h>160</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;140</additional_attributes></element><element><id>Relation</id><coordinates><x>1560</x><y>1560</y><w>30</w><h>140</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;120</additional_attributes></element><element><id>Relation</id><coordinates><x>1160</x><y>1700</y><w>110</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
-«create»</panel_attributes><additional_attributes>10;20;90;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1755</x><y>1505</y><w>40</w><h>200</h></coordinates><panel_attributes>lt=.&gt;</panel_attributes><additional_attributes>15;10;10;10;10;175</additional_attributes></element><element><id>Relation</id><coordinates><x>560</x><y>810</y><w>230</w><h>90</h></coordinates><panel_attributes>lt=.&gt;
-«use»</panel_attributes><additional_attributes>206;10;206;70;10;70</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>970</y><w>350</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
+m2=1</panel_attributes><additional_attributes>140;10;140;180;10;180;10;220</additional_attributes></element><element><id>Relation</id><coordinates><x>1000</x><y>1240</y><w>330</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;180;300;180;300;220</additional_attributes></element><element><id>Relation</id><coordinates><x>1115</x><y>1240</y><w>630</w><h>240</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;160;603;160;603;220</additional_attributes></element><element><id>Relation</id><coordinates><x>180</x><y>1590</y><w>30</w><h>110</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;90</additional_attributes></element><element><id>Relation</id><coordinates><x>1130</x><y>1530</y><w>30</w><h>170</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;150</additional_attributes></element><element><id>Relation</id><coordinates><x>650</x><y>1540</y><w>30</w><h>160</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;140</additional_attributes></element><element><id>Relation</id><coordinates><x>1640</x><y>1560</y><w>30</w><h>140</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;120</additional_attributes></element><element><id>Relation</id><coordinates><x>1240</x><y>1700</y><w>110</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
+«create»</panel_attributes><additional_attributes>10;20;90;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1835</x><y>1505</y><w>40</w><h>200</h></coordinates><panel_attributes>lt=.&gt;</panel_attributes><additional_attributes>15;10;10;10;10;175</additional_attributes></element><element><id>Relation</id><coordinates><x>560</x><y>840</y><w>230</w><h>60</h></coordinates><panel_attributes>lt=.&gt;
+«use»</panel_attributes><additional_attributes>206;10;206;40;10;40</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>970</y><w>350</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
 «create»</panel_attributes><additional_attributes>10;20;330;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>1090</y><w>350</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
 «use»</panel_attributes><additional_attributes>10;20;330;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1190</x><y>1210</y><w>90</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
 «use»</panel_attributes><additional_attributes>10;20;70;20</additional_attributes></element><element><id>Relation</id><coordinates><x>180</x><y>1760</y><w>130</w><h>170</h></coordinates><panel_attributes>lt=-&gt;
 m2=1
 adaptee</panel_attributes><additional_attributes>10;10;10;145;110;145</additional_attributes></element><element><id>Relation</id><coordinates><x>650</x><y>1760</y><w>70</w><h>120</h></coordinates><panel_attributes>lt=-&gt;
 m2=1
-adaptee</panel_attributes><additional_attributes>10;10;10;100</additional_attributes></element><element><id>Relation</id><coordinates><x>1050</x><y>1750</y><w>70</w><h>130</h></coordinates><panel_attributes>lt=-&gt;
+adaptee</panel_attributes><additional_attributes>10;10;10;100</additional_attributes></element><element><id>Relation</id><coordinates><x>1130</x><y>1750</y><w>70</w><h>130</h></coordinates><panel_attributes>lt=-&gt;
 m2=1
-adaptee</panel_attributes><additional_attributes>10;10;10;110</additional_attributes></element><element><id>Relation</id><coordinates><x>1560</x><y>1780</y><w>70</w><h>100</h></coordinates><panel_attributes>lt=-&gt;
+adaptee</panel_attributes><additional_attributes>10;10;10;110</additional_attributes></element><element><id>Relation</id><coordinates><x>1640</x><y>1780</y><w>70</w><h>100</h></coordinates><panel_attributes>lt=-&gt;
 m2=1
-adaptee</panel_attributes><additional_attributes>10;10;10;80</additional_attributes></element></diagram>
+adaptee</panel_attributes><additional_attributes>10;10;10;80</additional_attributes></element><element><id>UMLClass</id><coordinates><x>2700</x><y>0</y><w>280</w><h>120</h></coordinates><panel_attributes>PreviewMesh
+--
+_~SIZE : float = 200_
+--
+_~of(model : GlbModel) : PreviewMesh_
+~toTriangleMesh() : TriangleMesh
+bg=#dbe8f7</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>2610</x><y>30</y><w>110</w><h>40</h></coordinates><panel_attributes>lt=.&gt;
+«use»</panel_attributes><additional_attributes>10;20;90;20</additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>760</y><w>200</w><h>130</h></coordinates><panel_attributes>«record»
+GlbModel
+--
+-positions : float[]
+-normals : float[]
+-uvs : float[]
+-indices : int[]
+-texture : byte[]
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>920</y><w>215</w><h>60</h></coordinates><panel_attributes>GlbReader
+--
+--
++read(file : File) : GlbModel
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>90</x><y>870</y><w>80</w><h>70</h></coordinates><panel_attributes>lt=.&gt;
+«create»</panel_attributes><additional_attributes>10;50;10;20</additional_attributes></element><element><id>Relation</id><coordinates><x>90</x><y>970</y><w>345</w><h>90</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>325;50;325;70;10;70;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>90</x><y>970</y><w>485</w><h>90</h></coordinates><panel_attributes>lt=-&gt;</panel_attributes><additional_attributes>465;50;465;70;10;70;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>290</x><y>2060</y><w>260</w><h>130</h></coordinates><panel_attributes>«record»
+GeminiProperties
+--
+-apiKey : String
+-model : String
+-imageModel : String
+--
++requireApiKey() : String
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1030</x><y>2060</y><w>260</w><h>110</h></coordinates><panel_attributes>«record»
+VisionProperties
+--
+-apiKey : String
+--
++hasApiKey() : boolean
++requireApiKey() : String
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1520</x><y>2060</y><w>260</w><h>180</h></coordinates><panel_attributes>«record»
+HunyuanProperties
+--
+-secretId : String
+-secretKey : String
+-region : String
+-endpoint : String
+-version : String
+--
++hasKeys() : boolean
++requireKeys()
+bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>400</x><y>1990</y><w>40</w><h>90</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>Relation</id><coordinates><x>1140</x><y>1970</y><w>40</w><h>110</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;90</additional_attributes></element><element><id>Relation</id><coordinates><x>1630</x><y>1990</y><w>40</w><h>90</h></coordinates><panel_attributes>lt=-&gt;
+m2=1</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element></diagram>

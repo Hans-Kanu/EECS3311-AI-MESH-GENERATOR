@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1240</w><h>918</h></coordinates><panel_attributes>title=SD02: Generate Reference Image from Description (UC02, UC05)
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1320</w><h>1214</h></coordinates><panel_attributes>title=SD02: Generate Reference Images from a Description (UC02, UC05, UC06)
 obj=_:User_~u ACTOR
 obj=_:MainWindow_~mw
+obj=_:SourcesPanel_~sp
 obj=_:AppController_~ac
 obj=_:ModelAgent_~ag
 obj=_:DescriptionOnlyPath_~p
@@ -9,26 +10,34 @@ obj=_:GeminiVisionAdapter_~gv
 obj=_:GeminiImageAdapter_~gi
 obj=_:ReferenceImageSet_~rset
 u-&gt;&gt;&gt;mw : click Generate (description only); on=u; on=mw
-mw-&gt;&gt;&gt;ac : submitRequest(request); on=ac
-ac-&gt;&gt;&gt;ag : startGeneration(request, set); on=ag
+mw-&gt;&gt;&gt;ac : generateReferences(no images, description); on=ac
+ac-&gt;&gt;&gt;ag : startGeneration(request); on=ag
 ag-&gt;ag + :choosePath(request)
 tick=
-ag-&gt;&gt;&gt;p : run(agent, request, set); on=p
-p-&gt;&gt;&gt;ag : generateFromDescription(description)
-ag-&gt;&gt;&gt;gv : writeImagePrompt(description); on=gv
-gv.&gt;ag : prompt; off=gv
-ag-&gt;&gt;&gt;gi : generateFromPrompt(prompt)
-combinedFragment=alt~a1 mw rset; gi:[blocked by safety rules]
-gi.&gt;ag : error
-ag-&gt;&gt;&gt;mw : onError(GENERATING_IMAGE, reword description)
-..=a1; gi:[else]
-gi.&gt;ag : image
-ag-&gt;&gt;&gt;mw : onProgress(GENERATING_IMAGE, show image)
-u-&gt;&gt;&gt;mw : click Accept
-mw-&gt;&gt;&gt;ac : acceptGeneratedImage()
-ac-&gt;&gt;&gt;rset : add(image)
-p-&gt;p + :fillAndReview(agent, set)
+ag-&gt;&gt;&gt;p : run(request, progress); on=p
+p-&gt;&gt;&gt;mw : onProgress(GENERATING_IMAGE, writing a prompt)
+p-&gt;&gt;&gt;gv : writeImagePrompt(description); on=gv
+gv.&gt;p : frontPrompt; off=gv
+p-&gt;p + :generateViews(set, no refs, description, frontPrompt, progress)
 tick=
-ref=p rset :missing-angle loop (see SD01)
+p-&gt;&gt;&gt;gi : generateFromPrompt(frontPrompt); on=gi
+combinedFragment=alt~a1 mw rset; gi:[blocked by safety rules or failed]
+gi.&gt;p : IllegalStateException
+p.&gt;ag : IllegalStateException
+ag-&gt;&gt;&gt;mw : onError(GENERATING_ANGLES, message)
+ag.&gt;ac : IllegalStateException
+ac.&gt;mw : IllegalStateException
+mw-&gt;mw + :showError(message)
+tick=
+..=a1; gi:[else]
+gi.&gt;p : front view; off=gi
+p-&gt;&gt;&gt;rset : add(AI_GENERATED front view)
+ref=p rset :LEFT, RIGHT and BACK generated from the front and checked with isConsistent() (loop in SD01)
+p.&gt;ag : set; off=p
+ag-&gt;&gt;&gt;mw : onProgress(DONE, review the images)
+ag.&gt;ac : set; off=ag
+ref=ac ac :images copied into the project and saved (SD01)
+ac.&gt;mw : stored; off=ac
+mw-&gt;&gt;&gt;sp : showSources(stored)
 --=a1
 </panel_attributes><additional_attributes></additional_attributes></element></diagram>

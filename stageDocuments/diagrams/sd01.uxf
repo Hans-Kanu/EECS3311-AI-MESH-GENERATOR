@@ -1,55 +1,76 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>1390</w><h>1678</h></coordinates><panel_attributes>title=SD01: Generate Reference Set from an Image (UC02, UC03, UC04, UC06)
+<diagram program="umlet" version="15.1"><zoom_level>10</zoom_level><element><id>UMLSequenceAllInOne</id><coordinates><x>0</x><y>0</y><w>2020</w><h>2166</h></coordinates><panel_attributes>title=SD01: Generate Reference Set from an Image (UC02, UC03, UC04, UC06)
 obj=_:User_~u ACTOR
 obj=_:MainWindow_~mw
+obj=_:SourcesPanel_~sp
 obj=_:AppController_~ac
+obj=_:Project_~prj
+obj=_:ProjectRepository_~repo
 obj=_:ModelAgent_~ag
 obj=_:ImageOnlyPath_~p
 obj=_:GeminiVisionAdapter_~gv
 obj=_:ReverseImageSearchAdapter_~rs
+obj=_:ReverseImageSearchApi_~api
+obj=_:SearchResult_~sr
 obj=_:GeminiImageAdapter_~gi
 obj=_:ReferenceImageSet_~rset
 u-&gt;&gt;&gt;mw : click Generate; on=u; on=mw
-mw-&gt;&gt;&gt;ac : submitRequest(request); on=ac
-combinedFragment=alt~a1 mw rset; ac:[invalid input]
-ac-&gt;&gt;&gt;mw : showError(message)
-..=a1; ac:[valid]
-ac-&gt;&gt;&gt;ag : startGeneration(request, set); on=ag
+mw-&gt;&gt;&gt;ac : generateReferences(images, description); on=ac
+ac-&gt;&gt;&gt;ag : startGeneration(request); on=ag
+combinedFragment=alt~a1 mw rset; ag:[request.validate() fails]
+ag.&gt;ac : IllegalArgumentException
+ac.&gt;mw : IllegalArgumentException
+mw-&gt;mw + :showError(message)
+tick=
+..=a1; ag:[valid]
 ag-&gt;ag + :choosePath(request)
 tick=
-ag-&gt;&gt;&gt;p : run(agent, request, set); on=p
-p-&gt;&gt;&gt;ag : identifyObject(request)
-ag-&gt;&gt;&gt;gv : identify(images, description); on=gv
-gv.&gt;ag : id; off=gv
-combinedFragment=alt~a2 mw rset; ag:[id.isLowConfidence()]
-ag-&gt;&gt;&gt;mw : onError(IDENTIFYING, ask for description)
-..=a2; ag:[else]
-ag-&gt;&gt;&gt;mw : onProgress(IDENTIFYING, show result)
-u-&gt;&gt;&gt;mw : confirm identification
-mw-&gt;&gt;&gt;ac : confirmIdentification(id)
-p-&gt;&gt;&gt;ag : collectReferences(id, set)
-ag-&gt;&gt;&gt;rs : search(image, id); on=rs
-rs.&gt;ag : results; off=rs
-combinedFragment=loop~l1 ag rset; ag:[for each result]
-ag-&gt;&gt;&gt;gv : isSameItem(candidate, original); on=gv
-gv.&gt;ag : match; off=gv
-ag-&gt;&gt;&gt;gv : labelAngle(candidate); on=gv
-gv.&gt;ag : angle; off=gv
-ag-&gt;&gt;&gt;rset : add(image)
+ag-&gt;&gt;&gt;p : run(request, progress); on=p
+p-&gt;&gt;&gt;gv : identify(images, hint); on=gv
+gv.&gt;p : id; off=gv
+p-&gt;&gt;&gt;mw : onProgress(IDENTIFYING, name and confidence)
+combinedFragment=loop~l1 p rset; p:[for each uploaded image]
+p-&gt;&gt;&gt;gv : labelAngle(upload); on=gv
+gv.&gt;p : angle; off=gv
+p-&gt;&gt;&gt;rset : add(UPLOADED image)
 --=l1
---=a2
-p-&gt;p + :fillAndReview(agent, set)
-tick=
-p-&gt;&gt;&gt;ag : fillMissingAngles(set, context)
-ag-&gt;&gt;&gt;rset : missingAngles(); on=rset
-rset.&gt;ag : angles; off=rset
-combinedFragment=loop~l2 ag rset; ag:[for each missing angle]
-ag-&gt;&gt;&gt;gi : generateAngle(refs, angle); on=gi
-gi.&gt;ag : view; off=gi
-ag-&gt;&gt;&gt;gv : isConsistent(view, refs); on=gv
-gv.&gt;ag : ok; off=gv
-ag-&gt;&gt;&gt;rset : add(view)
+combinedFragment=alt~a2 mw rset; p:[id.isLowConfidence()]
+p-&gt;&gt;&gt;mw : onProgress(SEARCHING, search skipped)
+..=a2; p:[else]
+p-&gt;&gt;&gt;rs : search(image, id); on=rs
+rs-&gt;&gt;&gt;api : searchByImage(image); on=api
+api.&gt;rs : webDetection (Cloud Vision); off=api
+rs.&gt;p : results; off=rs
+combinedFragment=loop~l2 p rset; p:[first 8 results]
+p-&gt;&gt;&gt;sr : download(); on=sr
+sr.&gt;p : photo; off=sr
+p-&gt;&gt;&gt;gv : isSameItem(photo, original); on=gv
+gv.&gt;p : match; off=gv
+p-&gt;&gt;&gt;gv : labelAngle(photo), if it matches; on=gv
+gv.&gt;p : angle; off=gv
 --=l2
-ag-&gt;&gt;&gt;mw : onProgress(DONE, review images)
+p-&gt;&gt;&gt;rset : add(WEB photos), if 2 or more match
+--=a2
+p-&gt;p + :generateViews(set, refs, subject, null, progress)
+tick=
+combinedFragment=loop~l3 p rset; p:[for FRONT, LEFT, RIGHT, BACK, up to 2 attempts each]
+p-&gt;&gt;&gt;mw : onProgress(GENERATING_ANGLES, view)
+p-&gt;&gt;&gt;gi : generateAngle(inputs, subject, angle); on=gi
+gi.&gt;p : view; off=gi
+p-&gt;&gt;&gt;gv : isConsistent(view, checkAgainst); on=gv
+gv.&gt;p : ok; off=gv
+p-&gt;&gt;&gt;rset : add(AI_GENERATED view)
+--=l3
+p.&gt;ag : set; off=p
+ag-&gt;&gt;&gt;mw : onProgress(DONE, review the images)
+ag.&gt;ac : set; off=ag
+combinedFragment=loop~l4 ac repo; ac:[for each image in the set]
+ac-&gt;&gt;&gt;repo : importFile(project, image, images); on=repo
+repo.&gt;ac : copy; off=repo
+--=l4
+ac-&gt;&gt;&gt;prj : setReferenceSet(stored)
+ac-&gt;&gt;&gt;repo : save(project)
+ac.&gt;mw : stored; off=ac
+mw-&gt;&gt;&gt;sp : showSources(stored)
 --=a1
 </panel_attributes><additional_attributes></additional_attributes></element></diagram>
