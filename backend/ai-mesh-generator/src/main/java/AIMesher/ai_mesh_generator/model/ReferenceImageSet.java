@@ -15,21 +15,32 @@ public class ReferenceImageSet {
 		images.add(image);
 	}
 
-	// Rejects the change if it would leave the set without a front view or without any image,
-	// since the mesh generator needs both. The controller shows the message to the user.
+	// Leaves a generated view out of the next build (F05). Only AI-generated views are sent to the mesh generator, so
+	// only they can be left out; the user's photos and web photos are references only. The change is rejected if it
+	// would leave no generated view or no generated front view, since the mesh generator needs a front view.
+	// The controller shows the message to the user.
 	public void exclude(String imageId) {
 		ReferenceImage image = find(imageId);
 		if (image.isExcluded()) {
 			return;
 		}
-		List<ReferenceImage> remaining = getIncluded().stream().filter(other -> other != image).toList();
+		if (image.getOrigin() != ImageOrigin.AI_GENERATED) {
+			throw new IllegalStateException("Only the AI-generated views are sent to the 3D generator. Your photos and "
+					+ "web photos are references only, so there is nothing to leave out.");
+		}
+		List<ReferenceImage> remaining = getIncludedViews().stream().filter(other -> other != image).toList();
 		if (remaining.isEmpty()) {
-			throw new IllegalStateException("At least one reference image is required.");
+			throw new IllegalStateException("At least one generated view is required.");
 		}
 		if (image.getAngle() == Angle.FRONT && remaining.stream().noneMatch(other -> other.getAngle() == Angle.FRONT)) {
 			throw new IllegalStateException("The front view can't be excluded: 3D generation requires a front view.");
 		}
 		image.setExcluded(true);
+	}
+
+	// The included AI-generated views: what the mesh generator is sent.
+	private List<ReferenceImage> getIncludedViews() {
+		return getIncluded().stream().filter(image -> image.getOrigin() == ImageOrigin.AI_GENERATED).toList();
 	}
 
 	public void include(String imageId) {
@@ -44,8 +55,9 @@ public class ReferenceImageSet {
 		return images.stream().filter(image -> !image.isExcluded()).toList();
 	}
 
+	// True when an included generated front view exists, which building a model needs.
 	public boolean hasFrontView() {
-		return getIncluded().stream().anyMatch(image -> image.getAngle() == Angle.FRONT);
+		return getIncludedViews().stream().anyMatch(image -> image.getAngle() == Angle.FRONT);
 	}
 
 	public List<Angle> missingAngles() {

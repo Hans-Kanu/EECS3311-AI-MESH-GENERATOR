@@ -62,13 +62,15 @@ class ProjectRepositoryTest {
 		ProjectRepository repository = new ProjectRepository(root);
 		LocalDateTime created = LocalDateTime.of(2026, 10, 26, 21, 0);
 		Project project = new Project("Chair", created);
-		ReferenceImage front = new ReferenceImage(new File("front.png"), Angle.FRONT, ImageOrigin.UPLOADED, null);
+		ReferenceImage front = new ReferenceImage(new File("front.png"), Angle.FRONT, ImageOrigin.AI_GENERATED, null);
 		ReferenceImage back = new ReferenceImage(new File("back.png"), Angle.BACK, ImageOrigin.WEB,
 				"https://example.com/back");
+		ReferenceImage left = new ReferenceImage(new File("left.png"), Angle.LEFT, ImageOrigin.AI_GENERATED, null);
 		project.getReferenceSet().add(front);
 		project.getReferenceSet().add(back);
+		project.getReferenceSet().add(left);
 		project.addVersion(new File("v1.glb"));
-		project.getReferenceSet().exclude(back.getId());
+		project.getReferenceSet().exclude(left.getId());
 		project.addVersion(new File("v2.glb"));
 		project.setCurrentVersion(1);
 
@@ -80,21 +82,22 @@ class ProjectRepositoryTest {
 		assertEquals(1, loaded.getCurrentVersion());
 
 		List<ReferenceImage> images = loaded.getReferenceSet().getImages();
-		assertEquals(2, images.size());
+		assertEquals(3, images.size());
 		assertEquals(front.getId(), images.get(0).getId());
 		assertFalse(images.get(0).isExcluded());
 		assertEquals(back.getId(), images.get(1).getId());
 		assertEquals(ImageOrigin.WEB, images.get(1).getOrigin());
 		assertEquals("https://example.com/back", images.get(1).getSourceUrl());
-		assertTrue(images.get(1).isExcluded());
+		assertEquals(left.getId(), images.get(2).getId());
+		assertTrue(images.get(2).isExcluded());
 
 		ModelVersion v1 = loaded.getVersion(1);
 		ModelVersion v2 = loaded.getVersion(2);
 		assertEquals(project.getVersion(1).getCreatedAt(), v1.getCreatedAt());
 		assertEquals(new File("v1.glb").getAbsoluteFile(), v1.getModelFile());
 		// Each version keeps the exclusions it was built with.
-		assertFalse(v1.getReferenceSnapshot().getImages().get(1).isExcluded());
-		assertTrue(v2.getReferenceSnapshot().getImages().get(1).isExcluded());
+		assertFalse(v1.getReferenceSnapshot().getImages().get(2).isExcluded());
+		assertTrue(v2.getReferenceSnapshot().getImages().get(2).isExcluded());
 	}
 
 	@Test

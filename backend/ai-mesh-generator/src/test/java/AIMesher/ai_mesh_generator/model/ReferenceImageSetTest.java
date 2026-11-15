@@ -12,8 +12,9 @@ import org.junit.jupiter.api.Test;
 
 class ReferenceImageSetTest {
 
+	// A generated view: the only kind that can be left out of a build.
 	private static ReferenceImage image(Angle angle) {
-		return new ReferenceImage(new File(angle + ".png"), angle, ImageOrigin.UPLOADED, null);
+		return new ReferenceImage(new File(angle + ".png"), angle, ImageOrigin.AI_GENERATED, null);
 	}
 
 	@Test
@@ -65,6 +66,36 @@ class ReferenceImageSetTest {
 
 		set.exclude(front.getId());
 
+		assertTrue(set.hasFrontView());
+	}
+
+	@Test
+	void photosAreReferencesOnlySoTheyCannotBeExcluded() {
+		ReferenceImageSet set = new ReferenceImageSet();
+		ReferenceImage upload = new ReferenceImage(new File("mine.png"), Angle.LEFT, ImageOrigin.UPLOADED, null);
+		ReferenceImage web = new ReferenceImage(new File("web.png"), Angle.BACK, ImageOrigin.WEB, "https://example.com");
+		set.add(upload);
+		set.add(web);
+		set.add(image(Angle.FRONT));
+
+		IllegalStateException error = assertThrows(IllegalStateException.class, () -> set.exclude(upload.getId()));
+		assertThrows(IllegalStateException.class, () -> set.exclude(web.getId()));
+
+		assertTrue(error.getMessage().contains("references only"));
+		assertEquals(3, set.getIncluded().size());
+	}
+
+	// The case that used to slip through: an uploaded photo labelled as the front made the generated front look
+	// optional, and the build then failed for want of a generated front view.
+	@Test
+	void anUploadedFrontPhotoDoesNotStandInForTheGeneratedFrontView() {
+		ReferenceImageSet set = new ReferenceImageSet();
+		set.add(new ReferenceImage(new File("mine.png"), Angle.FRONT, ImageOrigin.UPLOADED, null));
+		ReferenceImage front = image(Angle.FRONT);
+		set.add(front);
+		set.add(image(Angle.BACK));
+
+		assertThrows(IllegalStateException.class, () -> set.exclude(front.getId()));
 		assertTrue(set.hasFrontView());
 	}
 
