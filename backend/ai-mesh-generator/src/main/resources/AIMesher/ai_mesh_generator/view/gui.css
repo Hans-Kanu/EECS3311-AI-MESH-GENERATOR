@@ -1,0 +1,57 @@
+/* Styles for the GUI (MainWindow and its panels), on top of JavaFX's default Modena theme. */
+
+.root {
+	-fx-font-size: 13px;
+	-fx-background-color: #f4f5f7;
+}
+
+.section-title {
+	-fx-font-size: 15px;
+	-fx-font-weight: bold;
+}
+
+.hint {
+	-fx-text-fill: #5f6670;
+}
+
+.button.primary {
+	-fx-base: #2f6fde;
+	-fx-font-weight: bold;
+}
+
+.cards, .cards > .viewport {
+	-fx-background-color: transparent;
+	-fx-background-insets: 0;
+}
+
+.card {
+	-fx-background-color: white;
+	-fx-background-radius: 6;
+	-fx-border-color: #d5d9df;
+	-fx-border-radius: 6;
+	-fx-padding: 8;
+}
+
+.card-excluded {
+	-fx-opacity: 0.45;
+}
+
+.card-title {
+	-fx-font-weight: bold;
+}
+
+.viewer {
+	-fx-background-color: linear-gradient(to bottom, #474d57, #1f2227);
+}
+
+.viewer-message {
+	-fx-text-fill: #e6e8eb;
+	-fx-font-size: 14px;
+	-fx-text-alignment: center;
+	-fx-padding: 24;
+}
+
+.status-bar {
+	-fx-background-color: #e7e9ed;
+	-fx-border-color: #d0d4da transparent transparent transparent;
+}

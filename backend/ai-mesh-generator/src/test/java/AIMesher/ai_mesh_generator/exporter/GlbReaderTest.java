@@ -55,6 +55,25 @@ class GlbReaderTest {
 	}
 
 	@Test
+	void keepsTheBaseColourImageForThePreview() throws Exception {
+		byte[] image = { (byte) 0x89, 'P', 'N', 'G', 1, 2, 3 };
+
+		assertArrayEquals(image, read(TestGlb.triangle().texture(image)).texture());
+		assertNull(read(TestGlb.triangle()).texture());
+	}
+
+	@Test
+	void aTextureThatPointsOutsideTheFileIsLeftOutNotAnError() throws Exception {
+		TestGlb glb = TestGlb.triangle().texture(new byte[] { 1, 2, 3 });
+		((ObjectNode) glb.json.path("bufferViews").get(4)).put("byteLength", 1_000_000);
+
+		GlbModel model = read(glb);
+
+		assertNull(model.texture());
+		assertEquals(1, model.triangleCount());
+	}
+
+	@Test
 	void readsByteShortAndIntIndices() throws Exception {
 		for (int componentType : new int[] { 5121, 5123, 5125 }) {
 			TestGlb glb = new TestGlb();

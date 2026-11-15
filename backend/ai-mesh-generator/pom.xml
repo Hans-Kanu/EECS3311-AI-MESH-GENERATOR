@@ -28,11 +28,19 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<javafx.version>21.0.5</javafx.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+
+		<!-- The GUI (MainWindow) and its 3D preview (F11). Maven picks the jars for the OS it builds on. -->
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>${javafx.version}</version>
 		</dependency>
 
 		<dependency>

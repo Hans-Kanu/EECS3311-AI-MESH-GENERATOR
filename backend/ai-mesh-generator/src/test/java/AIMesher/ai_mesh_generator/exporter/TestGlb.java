@@ -112,6 +112,18 @@ public final class TestGlb {
 		sceneNodes.add(nodes.size() - 1);
 	}
 
+	// Stores the image in the file and gives every mesh one material that uses it as its base colour, the way the
+	// mesh generator's models are laid out.
+	TestGlb texture(byte[] image) {
+		json.putArray("images").addObject().put("bufferView", view(image)).put("mimeType", "image/png");
+		json.putArray("textures").addObject().put("source", 0);
+		json.putArray("materials").addObject().putObject("pbrMetallicRoughness").putObject("baseColorTexture").put("index", 0);
+		for (int i = 0; i < meshes.size(); i++) {
+			primitive(i).put("material", 0);
+		}
+		return this;
+	}
+
 	ObjectNode node(int index) {
 		return (ObjectNode) nodes.get(index);
 	}

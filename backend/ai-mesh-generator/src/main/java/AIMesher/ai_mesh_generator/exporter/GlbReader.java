@@ -17,9 +17,10 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// Reads a GLB file (binary glTF 2.0, what the mesh generator returns) into one list of triangles for the exporters.
-// Anything it can't convert faithfully is rejected with IllegalArgumentException instead of being guessed at.
-class GlbReader {
+// Reads a GLB file (binary glTF 2.0, what the mesh generator returns) into one list of triangles for the exporters
+// and the 3D preview. Anything it can't convert faithfully is rejected with IllegalArgumentException instead of
+// being guessed at.
+public class GlbReader {
 
 	private static final int MAGIC = 0x46546C67; // "glTF"
 	private static final int JSON_CHUNK = 0x4E4F534A;
@@ -33,7 +34,7 @@ class GlbReader {
 
 	private final JsonMapper mapper = JsonMapper.builder().build();
 
-	GlbModel read(File file) {
+	public GlbModel read(File file) {
 		byte[] bytes;
 		try {
 			bytes = Files.readAllBytes(file.toPath());
@@ -320,7 +321,31 @@ class GlbReader {
 				}
 				vertexOffset += count;
 			}
-			return new GlbModel(positions, normals, uvs, indices);
+			return new GlbModel(positions, normals, uvs, indices, texture());
+		}
+
+		// The base colour image, when the model has exactly one material and its image is stored in the file, as
+		// the mesh generator's models do. Only the preview uses it, so anything unusual gives null, not an error.
+		private byte[] texture() {
+			JsonNode materials = json.path("materials");
+			JsonNode info = materials.path(0).path("pbrMetallicRoughness").path("baseColorTexture");
+			if (materials.size() != 1 || bin == null || !info.has("index")) {
+				return null;
+			}
+			int source = json.path("textures").path(info.path("index").asInt(-1)).path("source").asInt(-1);
+			JsonNode image = json.path("images").path(source);
+			if (!image.has("bufferView")) {
+				return null;
+			}
+			JsonNode view = json.path("bufferViews").path(image.path("bufferView").asInt(-1));
+			long start = view.path("byteOffset").asLong(0);
+			long length = view.path("byteLength").asLong(-1);
+			if (start < 0 || length < 0 || start + length > bin.limit()) {
+				return null;
+			}
+			byte[] bytes = new byte[(int) length];
+			bin.get((int) start, bytes);
+			return bytes;
 		}
 	}
 
