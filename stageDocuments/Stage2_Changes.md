@@ -11,7 +11,7 @@ of the Stage 2 report. Class and method names refer to `backend/ai-mesh-generato
 | F01 | Project library | Implemented | As designed. Saving is now atomic and a damaged `project.json` gives an error instead of a crash. |
 | F02 | Flexible input | Implemented | As designed: `ModelAgent.choosePath()` picks one of three `GenerationPath` strategies. |
 | F03 | Object identification | Modified | No "Identified as" panel and no confirm/correct step. The result is reported as a progress message. |
-| F04 | Reverse image search | Not implemented | The `ImageSearch` interface and the agent's search step exist, but no search service adapter is connected. |
+| F04 | Reverse image search | Modified | Implemented with Google Cloud Vision web detection, which searches by the picture only (not by keywords). Needs its own key; without one the search is skipped. |
 | F05 | Reference source viewer | Modified | Origin labels, source links and exclusion work. Only AI-generated views can be excluded, since only they are sent to Hunyuan 3D. |
 | F06 | Image from description only | Modified | All four views are generated in one run. There is no Accept / Regenerate step for the first image. |
 | F07 | Missing-angle generation | Modified | Front, left, right and back are always generated; uploaded and web photos are references only. TOP was dropped. |
@@ -20,7 +20,7 @@ of the Stage 2 report. Class and method names refer to `backend/ai-mesh-generato
 | F10 | Export | Implemented | As designed (GLB, OBJ, STL). OBJ and STL keep the shape but not the textures. |
 | F11 | 3D preview | Modified | Implemented in the GUI. No simplified preview for very large models. |
 
-No features were added or removed. F04 is the only feature not implemented.
+No features were added or removed. All eleven Stage 1 features are implemented.
 
 ## 2. Feature changes
 
@@ -44,19 +44,28 @@ No features were added or removed. F04 is the only feature not implemented.
    `AppController.submitRequest()` and `confirmIdentification()` (replaced by `generateReferences()`). No pattern
    change.
 
-### F04 Reverse image search (Not implemented)
+### F04 Reverse image search (Modified)
 
-1. **Original (F04, UC04):** `ReverseImageSearchAdapter` wraps `ReverseImageSearchApi` behind `ImageSearch`, and the
-   agent keeps the photos that `VisionModel.isSameItem()` says show the same item.
-2. **Implemented:** Everything on the agent side: `ImageOnlyPath.collectWebPhotos()` calls `ImageSearch.search()`,
-   downloads up to 8 results (`SearchResult.download()`, with a size and time limit), keeps matches with
-   `isSameItem()` and labels them with `labelAngle()`. With fewer than 2 matches it falls back to generating from the
-   user's input. No class implements `ImageSearch`, so `ModelAgent` uses an empty search and the fallback always runs.
-3. **Why:** No reverse image search service with a usable API and free tier was set up in time.
-4. **Scope:** The four views are generated from the user's photo and/or description. Because of the F07 change, web
-   photos would only ever be references, so the 3D result doesn't depend on F04.
-5. **Affected:** UC04; SD01 (search steps not reached); `ReverseImageSearchAdapter`, `ReverseImageSearchApi` (not
-   implemented). The Adapter pattern is still shown by the three implemented adapters.
+1. **Original (F04, UC04):** `ReverseImageSearchAdapter` wraps `ReverseImageSearchApi` behind `ImageSearch`. The search
+   may use the identified name as keywords, the image itself, or both, "depending on the search service behind the
+   adapter". The agent keeps the photos that `VisionModel.isSameItem()` says show the same item and labels their angle.
+2. **Implemented:** `ReverseImageSearchApi.searchByImage(image)` sends the user's photo to Google Cloud Vision's
+   `WEB_DETECTION` and returns its `webDetection` reply. `ReverseImageSearchAdapter.search()` turns that into
+   `SearchResult`s: look-alike pictures first (they can show other angles), then pictures containing part of the
+   photo, with the page they were found on. Exact copies of the photo are left out, duplicates are merged and only
+   http(s) addresses are kept. `ImageOnlyPath.collectWebPhotos()` then downloads up to 8 results
+   (`SearchResult.download()`, with a size and time limit), keeps matches with `isSameItem()` and labels them with
+   `labelAngle()`. With fewer than 2 matches, or when the search fails, it says why and generates the views from the
+   user's input.
+3. **What changed and why:** The search is by picture only; the identification isn't sent, because Cloud Vision
+   doesn't take text. It is a true reverse image search that accepts the uploaded file itself (most image search APIs
+   need a public image URL), and its first 1,000 searches a month are free. It needs its own key
+   (`GOOGLE_VISION_API_KEY`, bound by the new `VisionProperties`), because Cloud Vision refuses Gemini keys from AI
+   Studio. `searchByImage()` returns the parsed JSON (`JsonNode`) instead of a `String`.
+4. **User need:** As designed: photos of the same item from other angles are collected, checked and shown as web
+   references with their source page (F05). Without a key the app still works and says the web wasn't searched.
+5. **Affected:** UC04, SD01; `ReverseImageSearchAdapter`, `ReverseImageSearchApi`, `VisionProperties` (new). Adapter
+   pattern as designed.
 
 ### F05 Reference source viewer (Modified)
 
@@ -64,15 +73,16 @@ No features were added or removed. F04 is the only feature not implemented.
 2. **Implemented:** GUI: `SourcesPanel.showSources()` shows a card per image with a thumbnail, its role, its origin
    and, for web photos, a link that opens in the browser; double-clicking opens the image. CLI: `images list`,
    `images exclude <n>`, `images include <n>`. Excluding goes through `AppController.excludeImage()` and
-   `ReferenceImageSet.exclude()`, which refuses to lose the only front view or the last image. Choices are saved.
-3. **What changed and why:** Only AI-generated views are sent to Hunyuan 3D (see F07), so in the GUI only those have
-   a "Use in build" box; uploaded and web photos are labelled "reference only". `AppController.includeImage()` was
-   added so an exclusion can be undone.
+   `ReferenceImageSet.exclude()`, which refuses to lose the last generated front view or the last generated view.
+   Choices are saved.
+3. **What changed and why:** Only AI-generated views are sent to Hunyuan 3D (see F07), so only they can be excluded.
+   `ReferenceImageSet.exclude()` rejects an uploaded or web photo ("references only, so there is nothing to leave
+   out"), and only a generated front view counts as the front view. Before this, an uploaded photo labelled "front"
+   made the generated front look optional, and the build then failed. In the GUI only generated views have a "Use in
+   build" box. `AppController.includeImage()` was added so an exclusion can be undone.
 4. **User need:** The user still sees where every image came from and controls which views build the model.
-5. **Affected:** UC07, SD06; `SourcesPanel`, `AppController.includeImage()`, `ReferenceImageSet.include()`. Known
-   gaps: the CLI still lets you exclude a reference-only photo, which has no effect on the build; and when an
-   uploaded photo is also labelled as a front view, the generated front can be excluded, after which Build reports
-   that there is no generated front view.
+5. **Affected:** UC07 (its alternative flows now refer to generated views), SD06; `SourcesPanel`,
+   `AppController.includeImage()`, `ReferenceImageSet.exclude()`, `include()`, `hasFrontView()`.
 
 ### F06 Reference image generation from a description (Modified)
 
@@ -138,7 +148,7 @@ All Stage 1 patterns are implemented. None was replaced; the changes are in part
 | Facade | `ModelAgent` with `identifyObject()`, `collectReferences()`, `generateFromDescription()`, `fillMissingAngles()`, `buildMesh()` | `ModelAgent.startGeneration(request) : ReferenceImageSet` and `buildMesh(set) : File` | The step methods moved into the strategies, so the facade's public API is two calls. The controller still sees nothing behind it. |
 | Strategy | `GenerationPath.run(agent, request, set)`, shared `fillAndReview()` | `GenerationPath.run(request, progress)`, shared `generateViews()`; `ImageAndDescriptionPath` extends `ImageOnlyPath` | Strategies hold the services they need instead of calling back into the agent. |
 | Observer | `ProgressListener`; `MainWindow`, `CliApp` | Same | `ModelAgent` forwards path updates through an inner `Broadcaster` that remembers the stage, so failures are reported at the right stage. `MainWindow` moves updates to the JavaFX thread. |
-| Adapter | `GeminiVisionAdapter`, `GeminiImageAdapter`, `ReverseImageSearchAdapter`, `Hunyuan3DAdapter` | All but `ReverseImageSearchAdapter` | `GeminiVisionAdapter` and `GeminiImageAdapter` share one `GeminiApi` client; `Hunyuan3DAdapter` turns Tencent's job states into `JobStatus`. |
+| Adapter | `GeminiVisionAdapter`, `GeminiImageAdapter`, `ReverseImageSearchAdapter`, `Hunyuan3DAdapter` | All four | `GeminiVisionAdapter` and `GeminiImageAdapter` share one `GeminiApi` client; `ReverseImageSearchAdapter` turns Cloud Vision's reply into `SearchResult`s; `Hunyuan3DAdapter` turns Tencent's job states into `JobStatus`. |
 | Factory | `ExporterFactory.create(format)` | Same | `ObjExporter` and `StlExporter` share one `GlbReader`; `GlbExporter` copies the file. |
 | Prototype | `ReferenceImageSet.copy()` | Same, plus `ReferenceImage.copy()` | Each version keeps a deep copy of the set it was built from. |
 | MVC | Views, `AppController`, model | Same | GUI is JavaFX: `GuiApp` starts it; the panels pass user actions to `MainWindow`, the only GUI class that calls the controller. |
@@ -159,7 +169,7 @@ Structure: **Original design -> Implemented change -> Reason -> Impact.**
 | `ImageGenerator.generateAngle(refs, angle)` | `generateAngle(refs, subject, angle)` | The prompt names the object so every view shows the same item | `GeminiImageAdapter` |
 | `GeminiApi.generateContent(prompt, images)` | Plus `generateJson()` and `generateImage()`; retries busy/temporary errors with backoff; 120 s timeout | Structured answers and images need different requests; Gemini models are often busy | Clear "busy" vs "no connection" messages |
 | `Hunyuan3DApi.createJob()`, `queryJob()` | `submitProJob()`, `queryProJob()`, `download()`, with TC3-HMAC-SHA256 signing | Matches Tencent's Pro job API | `Hunyuan3DAdapter` maps `JobStatus` |
-| `ReverseImageSearchAdapter`, `ReverseImageSearchApi` | Not implemented | See F04 | Search always falls back |
+| `ReverseImageSearchApi.searchByImage(image) : String` | `searchByImage(image) : JsonNode`, calling Cloud Vision `WEB_DETECTION`; new `VisionProperties` for its key | Cloud Vision takes the picture itself; the adapter reads the parsed reply | F04 needs `GOOGLE_VISION_API_KEY` |
 | `ProjectRepository.save/load/...` | Plus `importFile(project, file, folder)`; atomic save; damaged files give a clear error | Images and models live inside the project folder so they survive renames; no half-written saves | F01, F09 |
 | `Project`, `ReferenceImageSet`, `ReferenceImage` | Plus `Project.setReferenceSet()`, `addSavedVersion()`; `ReferenceImageSet.include()`, `getImages()`; `ReferenceImage.copy()` | Loading saved projects, undoing exclusions, deep copies | Model classes |
 | `IdentificationPanel` | Not implemented | See F03 | GUI has five panels |
@@ -173,10 +183,10 @@ Structure: **Original design -> Implemented change -> Reason -> Impact.**
 ## 5. Diagrams to update for the Stage 2 report
 
 - **Class diagram:** every row in Section 4.
-- **Use cases:** UC03 (no confirm step), UC04 (not implemented), UC05 (no Accept / Regenerate), UC06 (always four
+- **Use cases:** UC03 (no confirm step), UC04 (search by picture only), UC05 (no Accept / Regenerate), UC06 (always four
   views), UC11 (`loadModel(version)`).
 - **Sequence diagrams:**
-  - SD01: identification without confirmation; search falls back; four generated views.
+  - SD01: identification without confirmation; search by picture through Cloud Vision; four generated views.
   - SD02: no `acceptGeneratedImage()`.
   - SD03: `buildModel()` returns the version and the view previews it.
   - SD06: `loadModel(version)`.

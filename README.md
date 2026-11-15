@@ -7,6 +7,8 @@ version you can preview and export.
 
 - **Agent "brain":** a Gemini model identifies the object, writes image prompts and checks that generated views
   match the references.
+- **Reverse image search:** Google Cloud Vision finds more photos of the object online, which the agent checks
+  and keeps as references.
 - **Image generation:** a Gemini image model draws the four views.
 - **3D generation:** Tencent Hunyuan 3D builds a textured mesh (GLB) from the views.
 
@@ -19,8 +21,8 @@ Both a **GUI** (JavaFX) and a **CLI** are included. They call the same controlle
 | F01 | Project library (create, open, rename, delete) | Implemented |
 | F02 | Flexible input: photo, description, or both | Implemented |
 | F03 | Object identification | Implemented (shown in the progress log; no confirm step) |
-| F04 | Reverse image search | Not implemented: no search service is connected yet |
-| F05 | Reference source viewer, with excluding images | Implemented (no web photos until F04 exists) |
+| F04 | Reverse image search | Implemented with Google Cloud Vision (needs its own key; skipped without one) |
+| F05 | Reference source viewer, with excluding generated views | Implemented |
 | F06 | Reference image from a description only | Implemented (no Accept / Regenerate step) |
 | F07 | Angle generation (front, left, right, back) | Implemented, changed: all four views are always generated |
 | F08 | Multi-view 3D mesh generation | Implemented |
@@ -38,6 +40,11 @@ Every difference from the Stage 1 design is explained in
 - An internet connection.
 - **A Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey). The image model
   (`gemini-2.5-flash-image`) needs a key with **billing turned on**; on the free tier its quota is 0.
+- **A Google Cloud Vision API key** (optional, for the reverse image search). Gemini keys don't work for it. In the
+  [Google Cloud console](https://console.cloud.google.com/), pick a project with billing turned on, open
+  **APIs & Services > Library**, search for **Cloud Vision API** and click **Enable**. Then open
+  **APIs & Services > Credentials**, click **Create credentials > API key**, and under **API restrictions** limit
+  the key to the Cloud Vision API. The first 1,000 searches each month are free.
 - **A Tencent Cloud API key pair** for Hunyuan 3D, from the international console (console.tencentcloud.com). Use
   a CAM sub-user with only the `QcloudHunYuanFullAccess` and `QcloudAI3DFullAccess` policies, not your main
   account's keys.
@@ -61,13 +68,15 @@ Open `.env` and replace the placeholders:
 | `GEMINI_API_KEY` | Yes | Your Gemini key |
 | `GEMINI_MODEL` | No | Reasoning model, default `gemini-3.5-flash` |
 | `GEMINI_IMAGE_MODEL` | No | Image model, default `gemini-2.5-flash-image` |
+| `GOOGLE_VISION_API_KEY` | No | Cloud Vision key for the reverse image search |
 | `HUNYUAN_SECRET_ID`, `HUNYUAN_SECRET_KEY` | Yes, to build models | Tencent Cloud key pair |
 | `HUNYUAN_REGION` | No | Default `ap-singapore` |
 | `HUNYUAN_ENDPOINT`, `HUNYUAN_VERSION` | No | Only for the China site; the defaults are for the international site |
 | `PROJECTS_DIR` | No | Where projects are saved, default `projects/` |
 
 Without the Hunyuan keys the app still runs and generates reference images; only building the 3D model is
-unavailable.
+unavailable. Without the Vision key the web isn't searched, and the views are generated from your photo and/or
+description.
 
 ## Run
 
@@ -102,7 +111,8 @@ java -jar target\ai-mesh-generator-0.0.1-SNAPSHOT.jar --spring.profiles.active=c
    `a red wooden stool with three legs`. The hint under the inputs says which path the agent will take. Click
    **Generate reference images**. Progress appears in the status bar and the **Activity** log.
 3. **2. Review the reference images**: check the four generated views. Untick **Use in build** on any view you
-   don't want sent. Double-click a picture to open it full size.
+   don't want sent. Your photo and any web photos are shown as references, with a link to the page each web photo
+   came from. Double-click a picture to open it full size.
 4. Click **Build 3D model**. Building takes a few minutes and uses Tencent Cloud credits.
 5. **3. 3D preview** shows the new version: drag to turn, scroll to zoom, **Reset view** to go back.
 6. **Versions**: select a version to preview it, **Make current**, **Delete**, or **Export...** to GLB (keeps
@@ -164,7 +174,7 @@ stageDocuments/  Stage 1 report, UML diagrams, Stage 2 change record
 
 ## Known limitations
 
-- Reverse image search (F04) has no service connected, so web photos never appear and the views are generated
-  from your photo and/or description.
+- The reverse image search (F04) searches by the picture only. Web photos that can't be downloaded (many shops
+  block it) or that Gemini says show a different item are skipped, so often few or none are kept.
 - OBJ and STL exports keep the shape (and texture coordinates for OBJ) but not the textures; use GLB for those.
 - Each generation run makes at least four image-generation requests, and each build is a paid Hunyuan 3D job.
