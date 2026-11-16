@@ -63,12 +63,12 @@ public abstract class GenerationPath {
 			view = prompt != null && inputs.isEmpty()
 					? generator.generateFromPrompt(prompt)
 					: generator.generateAngle(inputs, subject, angle);
-			if (checkAgainst.isEmpty() || vision.isConsistent(view, checkAgainst)) {
+			if (checkAgainst.isEmpty() || vision.isConsistent(view, checkAgainst, angle)) {
 				return view;
 			}
 			if (attempt < MAX_VIEW_ATTEMPTS) {
-				progress.onProgress(Stage.GENERATING_ANGLES,
-						"The " + name(angle) + " view doesn't match the references; generating it again...");
+				progress.onProgress(Stage.GENERATING_ANGLES, "The " + name(angle)
+						+ " view doesn't match the references or isn't seen from the right side; generating it again...");
 			}
 		}
 		progress.onProgress(Stage.GENERATING_ANGLES, "Keeping the last " + name(angle)

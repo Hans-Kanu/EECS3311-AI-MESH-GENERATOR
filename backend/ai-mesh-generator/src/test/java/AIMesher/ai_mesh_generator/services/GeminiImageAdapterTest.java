@@ -75,6 +75,33 @@ class GeminiImageAdapterTest {
 	}
 
 	@Test
+	void sideViewsAreDescribedAsATurnFromTheFrontImage() {
+		// The object's own left side is at the right edge of a front view, and the other way round.
+		String left = GeminiImageAdapter.anglePrompt(2, "mug", Angle.LEFT);
+		String right = GeminiImageAdapter.anglePrompt(2, "mug", Angle.RIGHT);
+
+		assertTrue(left.contains("the side at the RIGHT edge of the front image now faces the camera"), left);
+		assertTrue(right.contains("the side at the LEFT edge of the front image now faces the camera"), right);
+		assertTrue(left.contains("The first attached image is the front view"), left);
+		assertTrue(left.contains("Do not repeat it"), left);
+		assertFalse(GeminiImageAdapter.anglePrompt(2, "mug", Angle.FRONT).contains("Do not repeat it"));
+	}
+
+	@Test
+	void referencesSetTheLookButNotTheCameraAngle() {
+		String prompt = GeminiImageAdapter.anglePrompt(1, "doughnut", Angle.FRONT);
+
+		assertTrue(prompt.contains("Do not copy their camera angle"), prompt);
+		assertTrue(prompt.contains("not down on it from above"), prompt);
+	}
+
+	@Test
+	void aSideViewNeedsTheFrontView() {
+		assertThrows(IllegalArgumentException.class, () -> adapter().generateAngle(List.of(), "mug", Angle.LEFT));
+		assertEquals(null, gemini.prompt);
+	}
+
+	@Test
 	void generateFromPromptAsksForAFrontViewWithoutReferences() {
 		gemini.mimeType = "image/jpeg";
 

@@ -18,8 +18,9 @@ public interface VisionModel {
 
 	Angle labelAngle(File image);
 
-	// Whether a generated view matches the existing references closely enough to keep.
-	boolean isConsistent(File view, List<File> refs);
+	// Whether a generated view shows the same object as the references, seen from the given angle. For any angle
+	// other than FRONT, refs.get(0) is the front view that the angle is measured from.
+	boolean isConsistent(File view, List<File> refs, Angle angle);
 
 	// Turns the user's description into a detailed prompt for the image generator (F06).
 	String writeImagePrompt(String description);

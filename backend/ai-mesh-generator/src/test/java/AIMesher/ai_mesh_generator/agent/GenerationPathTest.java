@@ -129,6 +129,14 @@ class GenerationPathTest {
 	}
 
 	@Test
+	void eachViewIsCheckedForItsOwnAngle() {
+		// A copy of the front only fails the check if the check knows which side it should show.
+		new ImageOnlyPath(vision, generator, search).run(new GenerationRequest(List.of(PHOTO), null), progress);
+
+		assertEquals(List.of(Angle.FRONT, Angle.LEFT, Angle.RIGHT, Angle.BACK), vision.checkedAngles);
+	}
+
+	@Test
 	void imageAndDescriptionPassesTheDescriptionAlong() {
 		new ImageAndDescriptionPath(vision, generator, search)
 				.run(new GenerationRequest(List.of(PHOTO), "black mesh chair"), progress);

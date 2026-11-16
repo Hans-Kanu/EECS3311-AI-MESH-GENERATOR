@@ -161,20 +161,50 @@ class GeminiVisionAdapterTest {
 
 	@Test
 	void isConsistentSendsTheViewThenTheReferences() {
-		File view = new File("back.png");
+		File view = new File("front.png");
 		File ref1 = new File("ref1.png");
 		File ref2 = new File("ref2.png");
 		gemini.reply = """
-				{"consistent": false, "problems": ["the armrests are missing"]}""";
+				{"sameObject": false, "rightView": true, "problems": ["the armrests are missing"]}""";
 
-		assertFalse(vision.isConsistent(view, List.of(ref1, ref2)));
+		assertFalse(vision.isConsistent(view, List.of(ref1, ref2), Angle.FRONT));
 		assertEquals(List.of(view, ref1, ref2), gemini.images);
-		assertTrue(gemini.prompt.contains("Images 2 to 3"), gemini.prompt);
+		assertTrue(gemini.prompt.contains("Images 2 to 3 are reference photos"), gemini.prompt);
+		assertTrue(gemini.prompt.contains("not looking down on it"), gemini.prompt);
+	}
+
+	@Test
+	void aSideViewIsCheckedForItsViewpointAgainstTheFront() {
+		gemini.reply = """
+				{"sameObject": true, "rightView": true, "problems": []}""";
+
+		assertTrue(vision.isConsistent(new File("left.png"), List.of(new File("front.png")), Angle.LEFT));
+		assertTrue(gemini.prompt.contains("Image 2 is the front view"), gemini.prompt);
+		assertTrue(gemini.prompt.contains("the side at the right edge of image 2 faces the camera"), gemini.prompt);
+		assertTrue(gemini.prompt.contains("only repeats image 2 is wrong"), gemini.prompt);
+	}
+
+	@Test
+	void theSameObjectFromTheWrongSideIsNotConsistent() {
+		gemini.reply = """
+				{"sameObject": true, "rightView": false, "problems": ["shows the front again"]}""";
+
+		assertFalse(vision.isConsistent(new File("back.png"), List.of(new File("front.png")), Angle.BACK));
+		assertTrue(gemini.prompt.contains("from behind"), gemini.prompt);
+	}
+
+	@Test
+	void aConsistencyReplyWithoutTheViewpointAnswerIsUnusable() {
+		IllegalStateException error = unusable("""
+				{"sameObject": true}""", () -> vision.isConsistent(new File("left.png"), List.of(FOUND), Angle.LEFT));
+
+		assertTrue(error.getMessage().contains("\"rightView\""), error.getMessage());
 	}
 
 	@Test
 	void isConsistentNeedsAReference() {
-		assertThrows(IllegalArgumentException.class, () -> vision.isConsistent(new File("back.png"), List.of()));
+		assertThrows(IllegalArgumentException.class,
+				() -> vision.isConsistent(new File("back.png"), List.of(), Angle.BACK));
 		assertNull(gemini.prompt, "nothing should be sent");
 	}
 

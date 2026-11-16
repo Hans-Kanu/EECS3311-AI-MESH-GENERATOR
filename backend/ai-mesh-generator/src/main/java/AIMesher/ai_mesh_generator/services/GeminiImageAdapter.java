@@ -22,17 +22,23 @@ public class GeminiImageAdapter implements ImageGenerator {
 
 	static final String STYLE = """
 			Show the whole object, centred and filling most of the frame, on a plain white background, with even
-			studio lighting, the camera level with the middle of the object and no perspective distortion.
-			No text, no watermark, no hands, no other objects.""";
+			studio lighting and no perspective distortion. The camera is level with the middle of the object and
+			looks at it horizontally, not down on it from above. No text, no watermark, no hands, no other objects.""";
 
-	// Where the camera is for each view, measured from the object's front.
+	// Where the camera is for each view. The side views are described against the front image (the first
+	// reference, see ImageGenerator.generateAngle()) in terms of its edges, because "the object's left" is easily
+	// read as the viewer's left. An object facing the camera has its own left side at the right edge of the image.
 	static final Map<Angle, String> VIEWPOINTS = Map.of(
 			Angle.FRONT, "straight from the front, looking at the side people normally see first",
-			Angle.LEFT, "from its left side: the camera is turned 90 degrees to the object's left from the front view, "
-					+ "so only the left side is visible",
-			Angle.RIGHT, "from its right side: the camera is turned 90 degrees to the object's right from the front "
-					+ "view, so only the right side is visible",
-			Angle.BACK, "from directly behind: the camera is turned 180 degrees from the front view");
+			Angle.LEFT, "from its left side. Turn the object a quarter turn: the side at the RIGHT edge of the front "
+					+ "image now faces the camera, the part that faces the camera in the front image is now at the LEFT "
+					+ "edge, and the side at the left edge of the front image is hidden",
+			Angle.RIGHT, "from its right side. Turn the object a quarter turn: the side at the LEFT edge of the front "
+					+ "image now faces the camera, the part that faces the camera in the front image is now at the RIGHT "
+					+ "edge, and the side at the right edge of the front image is hidden",
+			Angle.BACK, "from directly behind. Turn the object half way round: the side that faces away in the front "
+					+ "image now faces the camera, and what is at the left edge of the front image is now at the right "
+					+ "edge");
 
 	private static final Map<String, String> EXTENSIONS = Map.of(
 			"image/png", ".png",
@@ -67,19 +73,29 @@ public class GeminiImageAdapter implements ImageGenerator {
 		if (subject == null || subject.isBlank()) {
 			throw new IllegalArgumentException("Say what the object is before generating a view of it.");
 		}
+		if (angle != Angle.FRONT && refs.isEmpty()) {
+			throw new IllegalArgumentException("The " + angle.name().toLowerCase()
+					+ " view is turned from the front view, so the front view must be its first reference.");
+		}
 		return save(client.generateImage(anglePrompt(refs.size(), subject.strip(), angle), refs), angle);
 	}
 
 	static String anglePrompt(int refCount, String subject, Angle angle) {
+		// The references set what the object looks like, never the camera: copying their angle made every view
+		// look like the front, and copying a photo taken from above tilted every view.
 		String references = refCount == 0 ? "" : """
 				The %d attached image(s) show this exact object. Keep its shape, proportions, parts, colours and \
-				materials exactly as they appear there; do not redesign or simplify it. If one image is already a \
-				clean view on a white background, treat it as the most accurate reference.
+				materials as they appear there; do not redesign or simplify it. Do not copy their camera angle or \
+				framing: use only the viewpoint described below.
 				""".formatted(refCount);
+		String front = angle == Angle.FRONT ? "" : """
+				The first attached image is the front view of the object. Do not repeat it: show the side described \
+				below.
+				""";
 		return """
 				Create a product photo of this object: %s.
-				%sPhotograph it %s.
-				%s""".formatted(subject, references, VIEWPOINTS.get(angle), STYLE);
+				%s%sPhotograph it %s.
+				%s""".formatted(subject, references, front, VIEWPOINTS.get(angle), STYLE);
 	}
 
 	private File save(GeneratedImage image, Angle angle) {

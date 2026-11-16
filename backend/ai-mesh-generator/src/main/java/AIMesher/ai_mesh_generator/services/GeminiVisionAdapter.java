@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -81,20 +82,45 @@ public class GeminiVisionAdapter implements VisionModel {
 		}
 	}
 
+	// What each view must show. The side views are described against the front view (image 2) in terms of its
+	// edges, the same way GeminiImageAdapter asks for them.
+	static final Map<Angle, String> EXPECTED_VIEWS = Map.of(
+			Angle.FRONT, "a straight front view, with the camera level with the middle of the object, not looking down "
+					+ "on it",
+			Angle.LEFT, "the object turned a quarter turn, so that the side at the right edge of image 2 faces the "
+					+ "camera and the part that faces the camera in image 2 is at the left edge",
+			Angle.RIGHT, "the object turned a quarter turn, so that the side at the left edge of image 2 faces the "
+					+ "camera and the part that faces the camera in image 2 is at the right edge",
+			Angle.BACK, "the object from behind, so that the side that faces away in image 2 faces the camera and what "
+					+ "is at the left edge of image 2 is at the right edge");
+
+	// Checks the object and the viewpoint. Checking only the object let a copy of the front pass as every side view.
 	@Override
-	public boolean isConsistent(File view, List<File> refs) {
+	public boolean isConsistent(File view, List<File> refs, Angle angle) {
 		if (refs.isEmpty()) {
 			throw new IllegalArgumentException("A consistency check needs at least one reference image.");
 		}
+		int last = refs.size() + 1;
+		String references = angle == Angle.FRONT
+				? "Images 2 to %d are reference photos of that object.".formatted(last)
+				: "Image 2 is the front view of that object." + (last > 2 ? " Images 3 to %d are more photos of it."
+						.formatted(last) : "");
+		String repeat = angle == Angle.FRONT ? "" : """
+				A view that only repeats image 2 is wrong, unless the object looks the same from every side (for \
+				example a ball, a plain ring or a round vase).
+				""";
 		String prompt = """
-				Image 1 is an AI-generated view of an object. Images 2 to %d are reference photos of that object.
-				Does image 1 show the same object, with the same shape, proportions, colours and details?
-				Reply with a JSON object: {"consistent": true or false, "problems": a list of differences, empty if none}
-				""".formatted(refs.size() + 1);
+				Image 1 is an AI-generated %s view of an object. %s
+				1. Does image 1 show the same object, with the same shape, proportions, colours and details?
+				2. Does image 1 show %s?
+				%sReply with a JSON object: {"sameObject": true or false, "rightView": true or false, \
+				"problems": a list of what is wrong, empty if nothing}
+				""".formatted(angle.name().toLowerCase(Locale.ROOT), references, EXPECTED_VIEWS.get(angle), repeat);
 		List<File> images = new ArrayList<>();
 		images.add(view);
 		images.addAll(refs);
-		return bool(ask(prompt, images, "consistency check"), "consistent", "consistency check");
+		JsonNode reply = ask(prompt, images, "consistency check");
+		return bool(reply, "sameObject", "consistency check") && bool(reply, "rightView", "consistency check");
 	}
 
 	@Override

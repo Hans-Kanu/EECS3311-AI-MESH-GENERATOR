@@ -26,6 +26,8 @@ final class Fakes {
 		final List<File> sameItems = new ArrayList<>();
 		// Answers for isConsistent(), in order; true once they run out.
 		final Deque<Boolean> consistency = new ArrayDeque<>();
+		// The angle of every isConsistent() call, in order.
+		final List<Angle> checkedAngles = new ArrayList<>();
 		String identifyHint;
 		String promptDescription;
 
@@ -46,7 +48,8 @@ final class Fakes {
 		}
 
 		@Override
-		public boolean isConsistent(File view, List<File> refs) {
+		public boolean isConsistent(File view, List<File> refs, Angle angle) {
+			checkedAngles.add(angle);
 			return consistency.isEmpty() || consistency.poll();
 		}
 
