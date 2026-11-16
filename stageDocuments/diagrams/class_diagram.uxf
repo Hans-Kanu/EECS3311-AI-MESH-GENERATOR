@@ -228,7 +228,7 @@ bg=#e2f0d9</panel_attributes><additional_attributes></additional_attributes></el
 +identify(images : List&lt;File&gt;, description : String) : Identification
 +isSameItem(candidate : File, original : File) : boolean
 +labelAngle(image : File) : Angle
-+isConsistent(view : File, refs : List&lt;File&gt;) : boolean
++isConsistent(view : File, refs : List&lt;File&gt;, angle : Angle) : boolean
 +writeImagePrompt(description : String) : String
 bg=#ececec</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>110</x><y>1680</y><w>160</w><h>80</h></coordinates><panel_attributes>«adapter»
 GeminiVisionAdapter

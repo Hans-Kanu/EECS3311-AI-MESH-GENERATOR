@@ -57,7 +57,7 @@ combinedFragment=loop~l3 p rset; p:[for FRONT, LEFT, RIGHT, BACK, up to 2 attemp
 p-&gt;&gt;&gt;mw : onProgress(GENERATING_ANGLES, view)
 p-&gt;&gt;&gt;gi : generateAngle(inputs, subject, angle); on=gi
 gi.&gt;p : view; off=gi
-p-&gt;&gt;&gt;gv : isConsistent(view, checkAgainst); on=gv
+p-&gt;&gt;&gt;gv : isConsistent(view, checkAgainst, angle); on=gv
 gv.&gt;p : ok; off=gv
 p-&gt;&gt;&gt;rset : add(AI_GENERATED view)
 --=l3

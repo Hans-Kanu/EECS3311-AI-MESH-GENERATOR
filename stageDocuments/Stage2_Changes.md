@@ -104,8 +104,10 @@ No features were added or removed. All eleven Stage 1 features are implemented.
    uploaded and web photos and generates only those.
 2. **Implemented:** `GenerationPath.generateViews()` always generates FRONT, then LEFT, RIGHT and BACK, as separate
    image requests. The front is made from all references; each later view is made from the references plus the
-   generated front. `VisionModel.isConsistent()` checks each view and it is generated again once if it doesn't match
-   (`MAX_VIEW_ATTEMPTS = 2`). Only these four AI views go to Hunyuan 3D (`ModelAgent.meshViews()`); uploaded and web
+   generated front. Side views are described as a turn from the front image in terms of its edges ("the side at the
+   right edge of the front image now faces the camera"), since "the object's left" was often read as the viewer's
+   left. `VisionModel.isConsistent(view, refs, angle)` checks both the object and the viewpoint, and a view is
+   generated again once if either doesn't match (`MAX_VIEW_ATTEMPTS = 2`). Only these four AI views go to Hunyuan 3D (`ModelAgent.meshViews()`); uploaded and web
    photos are references only.
 3. **Why:** Web and uploaded photos differ in lighting, background, scale and product variant, and are rarely exact
    front or side shots. A generated set is consistent and always covers all four views Hunyuan 3D's multi-view input
@@ -167,6 +169,7 @@ Structure: **Original design -> Implemented change -> Reason -> Impact.**
 | `GenerationPath.run(agent, request, set)`, `fillAndReview(agent, set)` | `run(request, progress)`, `generateViews(set, refs, subject, frontPrompt, progress)` | Strategies use the services directly; review happens after the run | SD01, SD02 messages change |
 | `Angle` with `TOP` | FRONT, BACK, LEFT, RIGHT | Hunyuan 3D takes no top view | F07 |
 | `ImageGenerator.generateAngle(refs, angle)` | `generateAngle(refs, subject, angle)` | The prompt names the object so every view shows the same item | `GeminiImageAdapter` |
+| `VisionModel.isConsistent(view, refs)` | `isConsistent(view, refs, angle)` | A copy of the front passed a check that only compared the object | Side views are checked for their viewpoint |
 | `GeminiApi.generateContent(prompt, images)` | Plus `generateJson()` and `generateImage()`; retries busy/temporary errors with backoff; 120 s timeout | Structured answers and images need different requests; Gemini models are often busy | Clear "busy" vs "no connection" messages |
 | `Hunyuan3DApi.createJob()`, `queryJob()` | `submitProJob()`, `queryProJob()`, `download()`, with TC3-HMAC-SHA256 signing | Matches Tencent's Pro job API | `Hunyuan3DAdapter` maps `JobStatus` |
 | `ReverseImageSearchApi.searchByImage(image) : String` | `searchByImage(image) : JsonNode`, calling Cloud Vision `WEB_DETECTION`; new `VisionProperties` for its key | Cloud Vision takes the picture itself; the adapter reads the parsed reply | F04 needs `GOOGLE_VISION_API_KEY` |
