@@ -755,7 +755,7 @@ Meaningful code commits (implementation or test code) per reporting period, in T
 | 2 (Oct 27-Nov 2) | 5 | [6bf00f2](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/6bf00f2) AI service interfaces and search result download; [e35d5ad](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/e35d5ad) Gemini retries; [17801fe](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/17801fe) OBJ/STL export and exporter factory; [d3e8149](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/d3e8149) version restore, delete and export; [dd33432](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/dd33432) Gemini vision adapter |
 | 3 (Nov 3-9) | 6 | [160e2b4](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/160e2b4) generation strategies; [c36ca9e](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/c36ca9e) Gemini image adapter; [03fb890](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/03fb890) ModelAgent facade; [a37d1d1](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/a37d1d1) controller generation and build; [9250d97](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/9250d97) CLI generate/images/build; [2332f95](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/2332f95) Hunyuan 3D adapter |
 
-Commits after the reporting periods (November 14-15):
+Code commits after the reporting periods (November 14-15):
 [9af24c3](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/9af24c3) clearer Gemini errors;
 [da0fdf0](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/da0fdf0) atomic saves and damaged-file errors;
 [b81d0ad](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/b81d0ad) network-drop retries;
@@ -763,7 +763,10 @@ Commits after the reporting periods (November 14-15):
 [f8c5015](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f8c5015) temp file cleanup;
 [5fd189c](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/5fd189c) JavaFX GUI and 3D preview;
 [f8b8428](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f8b8428) only generated views can be excluded;
-[ac050d9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/ac050d9) reverse image search through Cloud Vision.
+[ac050d9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/ac050d9) reverse image search through Cloud Vision;
+[7f1c90f](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/7f1c90f) side views generated as a turn from the front and checked for their viewpoint.
+
+Documentation and sample-data commits (not code): [6a96a88](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/6a96a88) README and change record; [995a2a9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/995a2a9) updated UML diagrams; [2b02648](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/2b02648) this report; [43a5bed](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/43a5bed) sample photos and descriptions.
 
 ### 6.2 Checks performed
 

@@ -231,4 +231,7 @@ network-drop retries; [f4084c5](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GE
 [5fd189c](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/5fd189c) JavaFX GUI and 3D preview;
 [f8b8428](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/f8b8428) only generated views can be
 excluded; [ac050d9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/ac050d9) reverse image search
-through Cloud Vision.
+through Cloud Vision; [7f1c90f](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/7f1c90f) side views generated as a turn from the front and checked for
+their viewpoint.
+
+Documentation and sample-data commits (not code): [6a96a88](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/6a96a88) README and change record; [995a2a9](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/995a2a9) updated UML diagrams; [2b02648](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/2b02648) this report; [43a5bed](https://github.com/Hans-Kanu/EECS3311-AI-MESH-GENERATOR/commit/43a5bed) sample photos and descriptions.
