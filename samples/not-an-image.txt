@@ -1,0 +1,2 @@
+This file is here on purpose: give it to "generate --image" (or drop it on the GUI's photo list) to see the input
+check reject it. Only PNG, JPG, JPEG and WEBP files up to 10 MB are accepted (F02).

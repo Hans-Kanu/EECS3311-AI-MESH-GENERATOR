@@ -1,0 +1,8 @@
+Example descriptions for "generate --describe" (CLI) or the description box (GUI).
+Use one on its own (description only, F06), or together with a photo from this folder (photo and description).
+
+a red ceramic coffee mug with a curved handle and a white inside
+a brass desk lamp with a green glass shade and a pull chain
+a wooden kitchen chair with a curved back and four straight legs
+a white running shoe with a grey sole and black laces
+a small potted cactus in a terracotta pot

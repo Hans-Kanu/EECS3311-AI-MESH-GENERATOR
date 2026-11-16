@@ -104,12 +104,14 @@ java -jar target\ai-mesh-generator-0.0.1-SNAPSHOT.jar --spring.profiles.active=c
 
 ## Example usage
 
+The [samples](samples/README.md) folder has photos and descriptions that are safe to use for trying it out.
+
 ### GUI
 
-1. **Projects** (left): click **New** and name the project, e.g. `Stool`.
-2. **1. Input**: drop a photo on the list or click **Add photos...**, and/or type a description such as
-   `a red wooden stool with three legs`. The hint under the inputs says which path the agent will take. Click
-   **Generate reference images**. Progress appears in the status bar and the **Activity** log.
+1. **Projects** (left): click **New** and name the project, e.g. `Mug`.
+2. **1. Input**: drop a photo on the list (for example `samples\red-mug.png`) or click **Add photos...**, and/or
+   type a description such as `a red ceramic coffee mug with a curved handle`. The hint under the inputs says which
+   path the agent will take. Click **Generate reference images**. Progress appears in the status bar and the **Activity** log.
 3. **2. Review the reference images**: check the four generated views. Untick **Use in build** on any view you
    don't want sent. Your photo and any web photos are shown as references, with a link to the page each web photo
    came from. Double-click a picture to open it full size.
@@ -123,9 +125,9 @@ java -jar target\ai-mesh-generator-0.0.1-SNAPSHOT.jar --spring.profiles.active=c
 Type `help` for the full list of commands. Put names with spaces in quotes.
 
 ```text
-> projects new Stool
-Created and opened project "Stool".
-> generate --image C:\photos\stool.jpg --describe "red wooden stool"
+> projects new Mug
+Created and opened project "Mug".
+> generate --image ..\..\samples\red-mug.png --describe "red ceramic coffee mug"
 [IDENTIFYING] Identifying the object...
 ...
 Generated 5 reference images:
@@ -143,8 +145,8 @@ Image 5 will be left out of the next build.
 Saved the model as version 1.
 > versions list
   v1  2026-11-14 15:49  (current)
-> export 1 --format glb --out C:\models\stool.glb
-Exported version 1 to C:\models\stool.glb.
+> export 1 --format glb --out C:\models\mug.glb
+Exported version 1 to C:\models\mug.glb.
 > exit
 ```
 
@@ -169,7 +171,8 @@ backend/ai-mesh-generator/src/main/java/AIMesher/ai_mesh_generator/
   services/    AI service interfaces, Gemini and Hunyuan adapters and API clients, ProjectRepository
   model/       Project, ReferenceImageSet, ReferenceImage, ModelVersion, GenerationRequest
   exporter/    ExporterFactory and the GLB, OBJ and STL exporters
-stageDocuments/  Stage 1 report, UML diagrams, Stage 2 change record
+stageDocuments/  Stage 1 report, Stage 2 report (stage2-report.pdf), UML diagrams, Stage 2 change record
+samples/         Sample photos and descriptions to try the app with
 ```
 
 ## Known limitations
